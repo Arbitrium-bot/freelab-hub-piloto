@@ -21,13 +21,14 @@ O que já está incluído
 - Cadastro inicial escolhendo clínica/laboratório ou freelancer.
 - Login, recuperação de senha e confirmação de e-mail simulada.
 - Painel diferente para quem procura e para quem oferece trabalho.
-- Feed público de vagas antes do cadastro, sem liberar contato.
+- Cadastro inicial limpo, sem feed público antes do login.
 - Marketplace com vagas e freelancers.
 - Perfil com foto, especialidades, celular, e-mail e bio.
 - Álbum de fotos para trabalhos/portfólio.
 - Publicação de vaga com valor e quantidade de elementos.
-- Contato direto por WhatsApp, sem mensagens internas.
-- Classificados com botão de WhatsApp.
+- Mensagens internas entre usuários.
+- Contato direto por WhatsApp quando quiser sair da conversa interna.
+- Classificados com mensagem interna e botão de WhatsApp.
 - WhatsApp conta como contato e subtrai do crédito gratuito.
 - Planos individuais por tipo de cadastro.
 - Planos simulados: clínica/laboratório R$ 49,90 e freelancer R$ 9,90.

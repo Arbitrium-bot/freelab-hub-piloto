@@ -1,4 +1,4 @@
-const CACHE_NAME = "freelab-hub-piloto-v5";
+const CACHE_NAME = "freelab-hub-piloto-v6";
 const ASSETS = ["./", "index.html", "manifest.json", "icon.svg", "freelab-hub-logo.png"];
 
 self.addEventListener("install", event => {

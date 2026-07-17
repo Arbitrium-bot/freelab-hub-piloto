@@ -230,58 +230,6 @@
       line-height: 1.5;
     }
 
-    .public-feed {
-      margin-top: 18px;
-      padding-top: 18px;
-      border-top: 1px solid var(--line);
-    }
-
-    .public-feed h3 {
-      margin: 0 0 4px;
-      font-size: 1rem;
-    }
-
-    .public-feed > p {
-      margin: 0 0 12px;
-      color: var(--muted);
-      font-size: .88rem;
-      line-height: 1.45;
-    }
-
-    .public-list {
-      display: grid;
-      gap: 10px;
-    }
-
-    .public-job {
-      padding: 12px;
-      border: 1px solid var(--line);
-      border-radius: var(--radius);
-      background: #fff;
-    }
-
-    .public-job-top {
-      display: flex;
-      gap: 10px;
-      justify-content: space-between;
-      align-items: flex-start;
-    }
-
-    .public-job strong {
-      display: block;
-      line-height: 1.25;
-    }
-
-    .public-job .meta {
-      margin-top: 3px;
-    }
-
-    .lock-note {
-      margin-top: 8px;
-      color: var(--muted);
-      font-size: .8rem;
-    }
-
     .app {
       min-height: 100vh;
       display: grid;
@@ -590,6 +538,86 @@
       border: 1px solid var(--line);
     }
 
+    .messages {
+      display: grid;
+      grid-template-columns: minmax(260px, .75fr) minmax(0, 1.25fr);
+      gap: 16px;
+      align-items: start;
+    }
+
+    .thread-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .thread-button {
+      width: 100%;
+      padding: 12px;
+      border-radius: var(--radius);
+      border: 1px solid var(--line);
+      background: white;
+      text-align: left;
+    }
+
+    .thread-button.active {
+      border-color: var(--teal);
+      background: #e8fbf8;
+    }
+
+    .thread-button strong {
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .chat {
+      min-height: 430px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .chat-log {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      min-height: 280px;
+      max-height: 460px;
+      overflow: auto;
+      padding: 12px;
+      border-radius: var(--radius);
+      background: var(--soft);
+    }
+
+    .bubble {
+      max-width: 78%;
+      padding: 10px 12px;
+      border-radius: var(--radius);
+      background: white;
+      border: 1px solid var(--line);
+      line-height: 1.45;
+    }
+
+    .bubble.mine {
+      align-self: flex-end;
+      background: var(--deep);
+      color: white;
+      border-color: var(--deep);
+    }
+
+    .bubble small {
+      display: block;
+      margin-top: 5px;
+      opacity: .72;
+      font-size: .75rem;
+    }
+
+    .chat-form {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
     .empty {
       padding: 24px;
       border-radius: var(--radius);
@@ -621,7 +649,7 @@
     }
 
     @media (max-width: 1080px) {
-      .auth, .app, .form-panel {
+      .auth, .app, .form-panel, .messages {
         grid-template-columns: 1fr;
       }
 
@@ -648,8 +676,9 @@
       .auth { padding: 10px; }
       .hero { min-height: 360px; }
       main { padding: 18px 12px 32px; }
-      .form-grid, .toolbar, .metrics, .grid { grid-template-columns: 1fr; }
+      .form-grid, .toolbar, .metrics, .grid, .chat-form { grid-template-columns: 1fr; }
       .album, .preview { grid-template-columns: repeat(2, 1fr); }
+      .bubble { max-width: 100%; }
       .top { flex-direction: column; }
     }
   </style>
@@ -745,11 +774,6 @@
         <button class="btn teal" id="confirmEmailButton">Confirmar e-mail neste piloto</button>
       </div>
 
-      <div class="public-feed">
-        <h3>Vagas em destaque</h3>
-        <p>O visitante vê oportunidades reais do mercado antes de entrar, mas só pode conversar depois de criar uma conta.</p>
-        <div class="public-list" id="publicJobList"></div>
-      </div>
     </div>
   </section>
 
@@ -774,9 +798,10 @@
       <nav class="nav" id="appNav">
         <button class="active" data-tab="dashboard">Painel <span>01</span></button>
         <button data-tab="market">Marketplace <span>02</span></button>
-        <button data-tab="profile">Cadastro <span>03</span></button>
-        <button data-tab="classifieds">Classificados <span>04</span></button>
-        <button data-tab="plans">Meu plano <span>05</span></button>
+        <button data-tab="messages">Mensagens <span>03</span></button>
+        <button data-tab="profile">Cadastro <span>04</span></button>
+        <button data-tab="classifieds">Classificados <span>05</span></button>
+        <button data-tab="plans">Meu plano <span>06</span></button>
       </nav>
 
       <div class="quota">
@@ -814,8 +839,8 @@
             <div id="dashboardPrimary"></div>
           </div>
           <div>
-            <div class="top" style="margin-bottom:10px;"><h2 style="font-size:1.2rem;margin:0;">Plano do cadastro</h2></div>
-            <div id="dashboardPlan"></div>
+            <div class="top" style="margin-bottom:10px;"><h2 style="font-size:1.2rem;margin:0;">Mensagens recentes</h2></div>
+            <div id="dashboardThreads"></div>
           </div>
         </div>
       </section>
@@ -846,6 +871,31 @@
           <div>
             <h2 style="font-size:1.15rem;">Freelancers disponíveis</h2>
             <div id="freelancerList"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel" id="messages">
+        <div class="top">
+          <div>
+            <p class="eyebrow">Mensagens internas</p>
+            <h1>Converse antes de liberar o contato direto.</h1>
+            <p>As mensagens ficam dentro da plataforma. Quando os dois lados respondem, a conexão passa a contar como contato confirmado.</p>
+          </div>
+        </div>
+
+        <div class="messages">
+          <div class="box">
+            <h3>Caixa de entrada</h3>
+            <div class="thread-list" id="threadList"></div>
+          </div>
+          <div class="box chat">
+            <h3 id="threadTitle">Selecione uma conversa</h3>
+            <div class="chat-log" id="chatLog"></div>
+            <form class="chat-form" id="messageForm">
+              <input id="messageText" placeholder="Escreva sua resposta">
+              <button class="btn primary" type="submit">Enviar</button>
+            </form>
           </div>
         </div>
       </section>
@@ -1099,6 +1149,19 @@
       classifieds: [
         { id: "class-1", ownerId: "lab-demo", title: "Forno de cerâmica revisado", value: "5.200,00", category: "Equipamento", city: "São Bernardo - SP", description: "Pouco uso, retirada local e teste presencial." }
       ],
+      threads: [
+        {
+          id: "thread-1",
+          participants: ["lab-demo", "freelancer-demo"],
+          jobUserId: "lab-demo",
+          freelancerUserId: "freelancer-demo",
+          classifiedId: "",
+          messages: [
+            { from: "lab-demo", text: "Olá Lucas, você consegue avaliar um caso de E.max anterior?", time: "Hoje 09:20" },
+            { from: "freelancer-demo", text: "Consigo sim. Pode me mandar a referência de cor e prazo?", time: "Hoje 09:28" }
+          ]
+        }
+      ],
       externalConnections: []
     };
 
@@ -1171,30 +1234,6 @@
       $("#adSpecialty").innerHTML = specialtyOptions;
       $("#specialtyFilter").innerHTML = `<option value="todas">Todas as especialidades</option>${specialtyOptions}`;
       $("#specialtyButtons").innerHTML = specialties.map(item => `<button class="chip" type="button" data-specialty="${item}">${item}</button>`).join("");
-      renderPublicJobs();
-    }
-
-    function renderPublicJobs() {
-      const jobs = state.users.filter(user => user.role === "lab" && user.adTitle).slice(0, 4);
-      $("#publicJobList").innerHTML = jobs.map(user => `
-        <article class="public-job">
-          <div class="public-job-top">
-            <div>
-              <strong>${user.adTitle}</strong>
-              <div class="meta">${user.name} · ${user.city}</div>
-            </div>
-            <div class="price">${money(user.adValue)}</div>
-          </div>
-          <div class="chips">
-            <span class="chip">${user.adSpecialty}</span>
-            <span class="chip">${user.adElements || 1} elemento(s)</span>
-          </div>
-          <div class="actions">
-            <button class="btn primary public-lock" type="button">Cadastrar para conversar</button>
-          </div>
-          <div class="lock-note">Detalhes e mensagens ficam liberados depois do cadastro.</div>
-        </article>
-      `).join("") || `<div class="empty">As vagas aparecem aqui assim que forem publicadas.</div>`;
     }
 
     function renderAll() {
@@ -1230,6 +1269,7 @@
       renderSpecialties();
       renderMetrics();
       renderMarket();
+      renderThreads();
       renderClassifieds();
       renderPlans();
       updateQuota();
@@ -1242,8 +1282,14 @@
     }
 
     function confirmedConnectionsFor(user) {
+      state.threads = state.threads || [];
+      const internal = state.threads.filter(thread => {
+        if (!thread.participants.includes(user.id)) return false;
+        const answered = new Set((thread.messages || []).map(message => message.from));
+        return thread.participants.every(id => answered.has(id));
+      }).length;
       const external = (state.externalConnections || []).filter(connection => connection.userId === user.id).length;
-      return external;
+      return internal + external;
     }
 
     function limitFor(user) {
@@ -1273,7 +1319,8 @@
       const suggestions = user.role === "lab" ? freelancers : jobs;
       $("#primaryListTitle").textContent = user.role === "lab" ? "Freelancers indicados" : "Vagas indicadas";
       $("#dashboardPrimary").innerHTML = suggestions.slice(0, 3).map(card).join("") || `<div class="empty">Complete seu perfil para receber sugestões.</div>`;
-      $("#dashboardPlan").innerHTML = planSummary(user);
+      const threads = (state.threads || []).filter(thread => thread.participants.includes(user.id));
+      $("#dashboardThreads").innerHTML = threads.slice(0, 3).map(threadSummary).join("") || `<div class="empty">Nenhuma mensagem ainda.</div>`;
     }
 
     function planSummary(user) {
@@ -1341,7 +1388,8 @@
           <p class="text"><strong>${secondary}</strong><br>${user.adDescription || user.bio || ""}</p>
           <div class="album">${album(user).slice(0, 4).map(src => `<div class="shot"><img src="${src}" alt=""></div>`).join("") || `<div class="shot">Foto</div><div class="shot">Foto</div>`}</div>
           <div class="actions">
-            <button class="btn primary" data-whatsapp-user="${user.id}">Chamar no WhatsApp</button>
+            <button class="btn primary" data-message="${user.id}">Mensagem interna</button>
+            <button class="btn teal" data-whatsapp-user="${user.id}">WhatsApp</button>
             <button class="btn" data-view="${user.id}">Ver perfil</button>
           </div>
         </article>`;
@@ -1349,6 +1397,93 @@
 
     function album(user) {
       return user.album || [];
+    }
+
+    function threadSummary(thread) {
+      const me = currentUser();
+      const otherId = thread.participants.find(id => id !== me.id);
+      const other = userById(otherId) || { name: "Usuário", city: "" };
+      const last = (thread.messages || []).at(-1);
+      return `
+        <button class="thread-button ${state.activeThread === thread.id ? "active" : ""}" type="button" data-thread="${thread.id}">
+          <strong>${other.name}</strong>
+          <span class="meta">${last ? last.text : "Conversa iniciada"}<br>${isConnected(thread) ? "Contato confirmado" : "Aguardando resposta dos dois lados"}</span>
+        </button>`;
+    }
+
+    function isConnected(thread) {
+      const answered = new Set((thread.messages || []).map(message => message.from));
+      return thread.participants.every(id => answered.has(id));
+    }
+
+    function renderThreads() {
+      state.threads = state.threads || [];
+      const me = currentUser();
+      const threads = state.threads.filter(thread => thread.participants.includes(me.id));
+      if (!state.activeThread && threads[0]) state.activeThread = threads[0].id;
+      $("#threadList").innerHTML = threads.map(threadSummary).join("") || `<div class="empty">Nenhuma conversa ainda.</div>`;
+      const active = threads.find(thread => thread.id === state.activeThread);
+      if (!active) {
+        $("#threadTitle").textContent = "Selecione uma conversa";
+        $("#chatLog").innerHTML = `<div class="empty">Abra uma conversa pelo Marketplace ou Classificados.</div>`;
+        return;
+      }
+      const otherId = active.participants.find(id => id !== me.id);
+      const other = userById(otherId) || { name: "Usuário" };
+      $("#threadTitle").textContent = other.name;
+      $("#chatLog").innerHTML = (active.messages || []).map(message => `
+        <div class="bubble ${message.from === me.id ? "mine" : ""}">
+          ${message.text}
+          <small>${message.time}</small>
+        </div>
+      `).join("");
+      $("#chatLog").scrollTop = $("#chatLog").scrollHeight;
+    }
+
+    function openThreadWith(otherId) {
+      const me = currentUser();
+      if (otherId === me.id) return toast("Não dá para abrir conversa com seu próprio cadastro.");
+      state.threads = state.threads || [];
+      let thread = state.threads.find(item => item.participants.includes(me.id) && item.participants.includes(otherId) && !item.classifiedId);
+      if (!thread) {
+        thread = {
+          id: crypto.randomUUID(),
+          participants: [me.id, otherId],
+          jobUserId: me.role === "lab" ? me.id : otherId,
+          freelancerUserId: me.role === "freelancer" ? me.id : otherId,
+          classifiedId: "",
+          messages: []
+        };
+        state.threads.unshift(thread);
+      }
+      state.activeThread = thread.id;
+      save();
+      renderAll();
+      document.querySelector('[data-tab="messages"]').click();
+    }
+
+    function openClassifiedThread(classifiedId) {
+      const item = state.classifieds.find(classified => classified.id === classifiedId);
+      if (!item) return toast("Classificado não encontrado.");
+      const me = currentUser();
+      if (item.ownerId === me.id) return toast("Não dá para chamar seu próprio classificado.");
+      state.threads = state.threads || [];
+      let thread = state.threads.find(entry => entry.classifiedId === classifiedId && entry.participants.includes(me.id));
+      if (!thread) {
+        thread = {
+          id: crypto.randomUUID(),
+          participants: [me.id, item.ownerId || "lab-demo"],
+          jobUserId: item.ownerId || "lab-demo",
+          freelancerUserId: me.id,
+          classifiedId,
+          messages: [{ from: me.id, text: `Olá, vi o classificado "${item.title}" e gostaria de conversar.`, time: "Agora" }]
+        };
+        state.threads.unshift(thread);
+      }
+      state.activeThread = thread.id;
+      save();
+      renderAll();
+      document.querySelector('[data-tab="messages"]').click();
     }
 
     function renderClassifieds() {
@@ -1363,7 +1498,8 @@
           </div>
           <p class="text">${item.description}</p>
           <div class="actions">
-            <button class="btn primary" data-class-whatsapp="${item.id}">Chamar no WhatsApp</button>
+            <button class="btn primary" data-class-message="${item.id}">Mensagem interna</button>
+            <button class="btn teal" data-class-whatsapp="${item.id}">WhatsApp</button>
           </div>
           <p class="hint">WhatsApp abre contato direto e consome 1 crédito de contato.</p>
         </article>`).join("");
@@ -1523,14 +1659,18 @@
     });
 
     document.addEventListener("click", event => {
-      const publicLock = event.target.closest(".public-lock");
-      if (publicLock) {
-        showAuthTab("register");
-        toast("Crie sua conta para ver detalhes e conversar.");
-        return;
-      }
       const jump = event.target.closest("[data-jump]");
       if (jump) document.querySelector(`[data-tab="${jump.dataset.jump}"]`).click();
+      const message = event.target.closest("[data-message]");
+      if (message) openThreadWith(message.dataset.message);
+      const classMessage = event.target.closest("[data-class-message]");
+      if (classMessage) openClassifiedThread(classMessage.dataset.classMessage);
+      const threadButton = event.target.closest("[data-thread]");
+      if (threadButton) {
+        state.activeThread = threadButton.dataset.thread;
+        save();
+        renderThreads();
+      }
       const whatsappUser = event.target.closest("[data-whatsapp-user]");
       if (whatsappUser) openUserWhatsapp(whatsappUser.dataset.whatsappUser);
       const classWhatsapp = event.target.closest("[data-class-whatsapp]");
@@ -1593,6 +1733,25 @@
       renderAll();
       toast(user.role === "lab" ? "Vaga publicada." : "Serviço publicado.");
       document.querySelector('[data-tab="market"]').click();
+    });
+
+    $("#messageForm").addEventListener("submit", event => {
+      event.preventDefault();
+      const text = $("#messageText").value.trim();
+      if (!text) return;
+      const me = currentUser();
+      const thread = (state.threads || []).find(item => item.id === state.activeThread);
+      if (!thread) return toast("Selecione uma conversa primeiro.");
+      const wasConnected = isConnected(thread);
+      thread.messages.push({
+        from: me.id,
+        text,
+        time: new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
+      });
+      $("#messageText").value = "";
+      save();
+      renderAll();
+      if (!wasConnected && isConnected(thread)) toast("Contato confirmado: os dois lados responderam.");
     });
 
     $("#classifiedForm").addEventListener("submit", event => {
