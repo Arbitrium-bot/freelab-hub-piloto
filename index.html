@@ -688,8 +688,8 @@
     <div class="hero">
       <img src="freelab-hub-logo.png" alt="FreeLab Hub">
       <div class="hero-badge">
-        <strong>FreeLab Hub mostra oportunidades antes do cadastro.</strong>
-        <span>O contato só abre depois que o usuário cria sua conta.</span>
+        <strong>Cadastro profissional para clínicas, laboratórios e freelancers.</strong>
+        <span>Ambiente limpo, privado e pronto para conexões qualificadas.</span>
       </div>
     </div>
 
@@ -698,7 +698,7 @@
         <div class="logo-dot">FL</div>
         <div>
           <h2>FreeLab Hub</h2>
-          <p>Ambiente piloto</p>
+          <p>Marketplace profissional</p>
         </div>
       </div>
 
@@ -711,17 +711,17 @@
       <form id="loginForm" class="auth-panel">
         <div class="form-grid">
           <label class="wide">E-mail
-            <input id="loginEmail" type="email" value="clinica@demo.com" required>
+            <input id="loginEmail" type="email" placeholder="seuemail@email.com" required>
           </label>
           <label class="wide">Senha
-            <input id="loginPassword" type="password" value="123456" required>
+            <input id="loginPassword" type="password" required>
           </label>
         </div>
         <div class="actions">
           <button class="btn primary" type="submit">Entrar no painel</button>
-          <button class="btn" type="button" id="demoFreelancer">Entrar como freelancer</button>
+          <button class="btn hidden" type="button" id="demoFreelancer">Entrar como freelancer</button>
         </div>
-        <p class="hint">Demo clínica: clinica@demo.com / 123456. Demo freelancer: freelancer@demo.com / 123456.</p>
+        <p class="hint">Entre com sua conta ou crie um cadastro para começar.</p>
       </form>
 
       <form id="registerForm" class="auth-panel hidden">
@@ -800,8 +800,7 @@
         <button data-tab="market">Marketplace <span>02</span></button>
         <button data-tab="messages">Mensagens <span>03</span></button>
         <button data-tab="profile">Cadastro <span>04</span></button>
-        <button data-tab="classifieds">Classificados <span>05</span></button>
-        <button data-tab="plans">Meu plano <span>06</span></button>
+        <button data-tab="plans">Meu plano <span>05</span></button>
       </nav>
 
       <div class="quota">
@@ -818,7 +817,7 @@
           <div>
             <p class="eyebrow" id="dashboardEyebrow">Visão geral</p>
             <h1 id="dashboardTitle">Painel interno</h1>
-            <p id="dashboardCopy">A visualização muda conforme seu cadastro: quem contrata vê freelancers e vagas publicadas; quem oferece trabalho vê oportunidades e mantém seu perfil pronto para contato.</p>
+            <p id="dashboardCopy">A visualização muda conforme seu cadastro: quem contrata encontra freelancers; quem oferece serviços mantém perfil, portfólio e mensagens em ordem.</p>
           </div>
           <div class="actions">
             <button class="btn primary" data-jump="market" id="mainCta">Ver oportunidades</button>
@@ -829,7 +828,7 @@
         <div class="metrics">
           <div class="metric"><strong id="mOpen">0</strong><span id="mOpenLabel">vagas abertas</span></div>
           <div class="metric"><strong id="mPros">0</strong><span>freelancers ativos</span></div>
-          <div class="metric"><strong id="mClassifieds">0</strong><span>classificados ativos</span></div>
+          <div class="metric"><strong id="mMessages">0</strong><span>conversas internas</span></div>
           <div class="metric"><strong id="mConnections">0</strong><span>contatos usados</span></div>
         </div>
 
@@ -852,7 +851,7 @@
             <h1 id="marketTitle">Encontre quem resolve seu trabalho.</h1>
             <p id="marketCopy">Filtro por especialidade, cidade, vaga ou profissional.</p>
           </div>
-          <button class="btn primary" data-jump="profile">Criar anúncio</button>
+          <button class="btn primary" data-jump="profile">Nova publicação</button>
         </div>
         <div class="toolbar">
           <input id="searchInput" placeholder="Buscar por nome, cidade, especialidade ou serviço">
@@ -903,9 +902,9 @@
       <section class="panel" id="profile">
         <div class="top">
           <div>
-            <p class="eyebrow">Perfil e anúncio</p>
+            <p class="eyebrow">Perfil e publicação</p>
             <h1 id="profileTitle">Complete seu perfil profissional.</h1>
-            <p id="profileCopy">Foto, dados, especialidades, álbum e anúncio ficam em uma única tela.</p>
+            <p id="profileCopy">Foto, dados, especialidades, álbum e publicação ficam em uma única tela.</p>
           </div>
         </div>
 
@@ -946,7 +945,7 @@
           </form>
 
           <div class="box">
-            <h2 id="adBoxTitle">Meu anúncio</h2>
+            <h2 id="adBoxTitle">Minha publicação</h2>
             <form id="adForm">
               <div class="form-grid">
                 <label class="wide">Título
@@ -975,7 +974,7 @@
                 </label>
               </div>
               <div class="actions">
-                <button class="btn primary" type="submit">Publicar anúncio</button>
+                <button class="btn primary" type="submit">Publicar</button>
               </div>
             </form>
           </div>
@@ -1084,6 +1083,8 @@
       "Acabamento"
     ];
 
+    const STORAGE_KEY = "freelab-hub-comercial-v1";
+
     const defaults = {
       sessionEmail: "clinica@demo.com",
       activeThread: null,
@@ -1100,11 +1101,11 @@
           avatar: "",
           specialties: ["E.max", "Cerâmica", "Zircônia"],
           bio: "Clínica com fluxo digital procurando parceiros para trabalhos de prótese com acabamento previsível.",
-          adTitle: "Procuro ceramista para E.max anterior",
+          adTitle: "",
           adSpecialty: "E.max",
-          adValue: "420,00",
-          adElements: "2",
-          adDescription: "Caso anterior com prazo comercial. Enviamos fotos, cor e referência do paciente.",
+          adValue: "",
+          adElements: "",
+          adDescription: "",
           album: []
         },
         {
@@ -1119,11 +1120,11 @@
           avatar: "",
           specialties: ["Cerâmica", "E.max", "Zircônia", "CAD/CAM", "Resina foto"],
           bio: "Protético freelancer com foco em cerâmica, zircônia e fluxo digital/analógico.",
-          adTitle: "Ceramista freelancer para laboratórios e clínicas",
+          adTitle: "",
           adSpecialty: "Cerâmica",
-          adValue: "Sob orçamento",
+          adValue: "",
           adElements: "",
-          adDescription: "Atendo por peça, diária ou pacote. Portfólio disponível e agenda semanal.",
+          adDescription: "",
           album: []
         },
         {
@@ -1138,30 +1139,16 @@
           avatar: "",
           specialties: ["Serviços em acrílico (próteses removíveis)", "Protocolo", "Acabamento"],
           bio: "Montagem, acrilização, acabamento e polimento de removíveis e protocolos.",
-          adTitle: "Serviços em acrílico e próteses removíveis",
+          adTitle: "",
           adSpecialty: "Serviços em acrílico (próteses removíveis)",
-          adValue: "Diária ou peça",
+          adValue: "",
           adElements: "",
-          adDescription: "Trabalho para labs com bancada organizada ou retirada combinada.",
+          adDescription: "",
           album: []
         }
       ],
-      classifieds: [
-        { id: "class-1", ownerId: "lab-demo", title: "Forno de cerâmica revisado", value: "5.200,00", category: "Equipamento", city: "São Bernardo - SP", description: "Pouco uso, retirada local e teste presencial." }
-      ],
-      threads: [
-        {
-          id: "thread-1",
-          participants: ["lab-demo", "freelancer-demo"],
-          jobUserId: "lab-demo",
-          freelancerUserId: "freelancer-demo",
-          classifiedId: "",
-          messages: [
-            { from: "lab-demo", text: "Olá Lucas, você consegue avaliar um caso de E.max anterior?", time: "Hoje 09:20" },
-            { from: "freelancer-demo", text: "Consigo sim. Pode me mandar a referência de cor e prazo?", time: "Hoje 09:28" }
-          ]
-        }
-      ],
+      classifieds: [],
+      threads: [],
       externalConnections: []
     };
 
@@ -1172,14 +1159,14 @@
     function $all(selector) { return [...document.querySelectorAll(selector)]; }
 
     function load() {
-      const saved = localStorage.getItem("freelab-hub-piloto");
+      const saved = localStorage.getItem(STORAGE_KEY);
       if (!saved) return structuredClone(defaults);
       try { return { ...structuredClone(defaults), ...JSON.parse(saved) }; }
       catch { return structuredClone(defaults); }
     }
 
     function save() {
-      localStorage.setItem("freelab-hub-piloto", JSON.stringify(state));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     }
 
     function currentUser() {
@@ -1245,7 +1232,7 @@
       $("#miniAvatar").innerHTML = avatar(user);
       $("#dashboardEyebrow").textContent = isLab ? "Procure freelancers" : "Receba oportunidades";
       $("#dashboardTitle").textContent = isLab ? "Contrate protéticos por especialidade." : "Mostre seu trabalho para clínicas e laboratórios.";
-      $("#dashboardCopy").textContent = isLab ? "Sua área prioriza profissionais disponíveis, portfólio e contato direto por WhatsApp." : "Sua área prioriza vagas publicadas, pedidos de contato e seu álbum profissional.";
+      $("#dashboardCopy").textContent = isLab ? "Sua área prioriza profissionais disponíveis, portfólio e mensagens internas." : "Sua área prioriza publicações abertas, pedidos de contato e seu álbum profissional.";
       $("#mainCta").textContent = isLab ? "Ver freelancers" : "Ver vagas";
       $("#profileTitle").textContent = isLab ? "Perfil da clínica ou laboratório." : "Perfil profissional do freelancer.";
       $("#profileCopy").textContent = isLab ? "Cadastre seus dados, publique vagas com valor e quantidade de elementos." : "Cadastre especialidades, foto, portfólio e disponibilidade.";
@@ -1312,7 +1299,7 @@
       const freelancers = state.users.filter(item => item.role === "freelancer" && item.adTitle);
       $("#mOpen").textContent = jobs.length;
       $("#mPros").textContent = freelancers.length;
-      $("#mClassifieds").textContent = state.classifieds.length;
+      $("#mMessages").textContent = (state.threads || []).filter(thread => thread.participants.includes(user.id)).length;
       $("#mConnections").textContent = confirmedConnectionsFor(user);
       $("#mOpenLabel").textContent = user.role === "lab" ? "vagas publicadas" : "vagas abertas";
 

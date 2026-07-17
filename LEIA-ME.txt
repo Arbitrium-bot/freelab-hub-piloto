@@ -28,7 +28,6 @@ O que já está incluído
 - Publicação de vaga com valor e quantidade de elementos.
 - Mensagens internas entre usuários.
 - Contato direto por WhatsApp quando quiser sair da conversa interna.
-- Classificados com mensagem interna e botão de WhatsApp.
 - WhatsApp conta como contato e subtrai do crédito gratuito.
 - Planos individuais por tipo de cadastro.
 - Planos simulados: clínica/laboratório R$ 49,90 e freelancer R$ 9,90.
