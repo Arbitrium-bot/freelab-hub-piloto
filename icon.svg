@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="108" fill="#0f3f3d"/>
+  <circle cx="256" cy="256" r="172" fill="#d7f2ec"/>
+  <path d="M156 280c0-86 44-142 100-142s100 56 100 142c0 72-31 112-61 112-19 0-24-35-39-35s-20 35-39 35c-30 0-61-40-61-112Z" fill="#fff"/>
+  <path d="M182 161h148c-16-34-43-54-74-54s-58 20-74 54Z" fill="#2bd0b3"/>
+  <path d="M164 278h184" stroke="#0f6a5f" stroke-width="26" stroke-linecap="round"/>
+  <path d="M256 180v204" stroke="#d79a27" stroke-width="24" stroke-linecap="round"/>
+  <text x="256" y="466" text-anchor="middle" font-family="Arial, sans-serif" font-size="56" font-weight="800" fill="#ffffff">PH</text>
+</svg>

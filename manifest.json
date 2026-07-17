@@ -1,0 +1,16 @@
+{
+  "name": "FreeLab Hub Piloto",
+  "short_name": "FreeLab",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#f4f8f7",
+  "theme_color": "#062f34",
+  "description": "Piloto de marketplace para conectar protéticos freelancers a clínicas e laboratórios de excelência.",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
