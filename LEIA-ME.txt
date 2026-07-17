@@ -3,14 +3,17 @@ FreeLab Hub - Piloto
 Este é o piloto navegável do marketplace para conectar clínicas/laboratórios e freelancers de prótese odontológica.
 
 Como testar
-1. Abra o link local informado pelo Codex:
+1. Link publicado no Render:
+   https://freelab-hub-piloto.onrender.com
+
+2. Link local, quando estiver rodando no computador:
    http://127.0.0.1:8801/
 
-2. Login de clínica/laboratório:
+3. Login de clínica/laboratório:
    E-mail: clinica@demo.com
    Senha: 123456
 
-3. Login de freelancer:
+4. Login de freelancer:
    E-mail: freelancer@demo.com
    Senha: 123456
 
@@ -34,4 +37,3 @@ Observações importantes
 - Este piloto salva os dados no navegador, usando localStorage.
 - Ainda não tem banco de dados real, autenticação real, pagamento real nem envio real de e-mail.
 - A próxima etapa, quando aprovarmos o fluxo, é transformar em backend com usuários reais, banco de dados, fotos persistentes e assinatura.
-
