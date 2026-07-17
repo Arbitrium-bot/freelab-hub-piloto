@@ -590,71 +590,6 @@
       border: 1px solid var(--line);
     }
 
-    .messages {
-      display: grid;
-      grid-template-columns: minmax(260px, .5fr) minmax(0, 1fr);
-      gap: 16px;
-    }
-
-    .thread-list {
-      display: grid;
-      gap: 10px;
-    }
-
-    .thread-button {
-      width: 100%;
-      text-align: left;
-      border-radius: var(--radius);
-      border: 1px solid var(--line);
-      background: white;
-      padding: 12px;
-    }
-
-    .thread-button.active {
-      border-color: var(--teal);
-      box-shadow: 0 0 0 3px rgba(0, 167, 173, .12);
-    }
-
-    .chat {
-      min-height: 420px;
-      display: flex;
-      flex-direction: column;
-    }
-
-    .chat-log {
-      flex: 1;
-      display: grid;
-      align-content: start;
-      gap: 10px;
-      padding: 12px;
-      border-radius: var(--radius);
-      background: #f7fbfb;
-      border: 1px solid var(--line);
-      overflow: auto;
-    }
-
-    .bubble {
-      max-width: 78%;
-      padding: 10px 12px;
-      border-radius: 10px;
-      background: white;
-      border: 1px solid var(--line);
-      line-height: 1.45;
-    }
-
-    .bubble.mine {
-      justify-self: end;
-      background: #dff8f4;
-      border-color: #b8ede7;
-    }
-
-    .chat-form {
-      display: grid;
-      grid-template-columns: 1fr auto;
-      gap: 8px;
-      margin-top: 10px;
-    }
-
     .empty {
       padding: 24px;
       border-radius: var(--radius);
@@ -686,7 +621,7 @@
     }
 
     @media (max-width: 1080px) {
-      .auth, .app, .form-panel, .messages {
+      .auth, .app, .form-panel {
         grid-template-columns: 1fr;
       }
 
@@ -716,8 +651,6 @@
       .form-grid, .toolbar, .metrics, .grid { grid-template-columns: 1fr; }
       .album, .preview { grid-template-columns: repeat(2, 1fr); }
       .top { flex-direction: column; }
-      .chat-form { grid-template-columns: 1fr; }
-      .bubble { max-width: 100%; }
     }
   </style>
 </head>
@@ -841,15 +774,14 @@
       <nav class="nav" id="appNav">
         <button class="active" data-tab="dashboard">Painel <span>01</span></button>
         <button data-tab="market">Marketplace <span>02</span></button>
-        <button data-tab="messages">Mensagens <span>03</span></button>
-        <button data-tab="profile">Perfil <span>04</span></button>
-        <button data-tab="classifieds">Classificados <span>05</span></button>
-        <button data-tab="plans">Planos <span>06</span></button>
+        <button data-tab="profile">Cadastro <span>03</span></button>
+        <button data-tab="classifieds">Classificados <span>04</span></button>
+        <button data-tab="plans">Meu plano <span>05</span></button>
       </nav>
 
       <div class="quota">
         <strong id="quotaNumber">0</strong>
-        <span id="quotaText">conexões gratuitas restantes</span>
+        <span id="quotaText">contatos gratuitos restantes</span>
       </div>
 
       <button class="btn" id="logoutButton">Sair</button>
@@ -861,7 +793,7 @@
           <div>
             <p class="eyebrow" id="dashboardEyebrow">Visão geral</p>
             <h1 id="dashboardTitle">Painel interno</h1>
-            <p id="dashboardCopy">A visualização muda conforme seu cadastro: quem contrata vê freelancers e vagas publicadas; quem oferece trabalho vê oportunidades e conversas.</p>
+            <p id="dashboardCopy">A visualização muda conforme seu cadastro: quem contrata vê freelancers e vagas publicadas; quem oferece trabalho vê oportunidades e mantém seu perfil pronto para contato.</p>
           </div>
           <div class="actions">
             <button class="btn primary" data-jump="market" id="mainCta">Ver oportunidades</button>
@@ -872,8 +804,8 @@
         <div class="metrics">
           <div class="metric"><strong id="mOpen">0</strong><span id="mOpenLabel">vagas abertas</span></div>
           <div class="metric"><strong id="mPros">0</strong><span>freelancers ativos</span></div>
-          <div class="metric"><strong id="mThreads">0</strong><span>conversas internas</span></div>
-          <div class="metric"><strong id="mConnections">0</strong><span>conexões confirmadas</span></div>
+          <div class="metric"><strong id="mClassifieds">0</strong><span>classificados ativos</span></div>
+          <div class="metric"><strong id="mConnections">0</strong><span>contatos usados</span></div>
         </div>
 
         <div class="grid">
@@ -882,8 +814,8 @@
             <div id="dashboardPrimary"></div>
           </div>
           <div>
-            <div class="top" style="margin-bottom:10px;"><h2 style="font-size:1.2rem;margin:0;">Conversas recentes</h2></div>
-            <div id="dashboardThreads"></div>
+            <div class="top" style="margin-bottom:10px;"><h2 style="font-size:1.2rem;margin:0;">Plano do cadastro</h2></div>
+            <div id="dashboardPlan"></div>
           </div>
         </div>
       </section>
@@ -914,30 +846,6 @@
           <div>
             <h2 style="font-size:1.15rem;">Freelancers disponíveis</h2>
             <div id="freelancerList"></div>
-          </div>
-        </div>
-      </section>
-
-      <section class="panel" id="messages">
-        <div class="top">
-          <div>
-            <p class="eyebrow">Mensagens internas</p>
-            <h1>Converse antes de virar conexão.</h1>
-            <p>A conexão só passa a contar no limite gratuito quando você e a outra pessoa responderem dentro da conversa.</p>
-          </div>
-        </div>
-        <div class="messages">
-          <div class="box">
-            <h3>Conversas</h3>
-            <div class="thread-list" id="threadList"></div>
-          </div>
-          <div class="box chat">
-            <h3 id="threadTitle">Selecione uma conversa</h3>
-            <div class="chat-log" id="chatLog"></div>
-            <form class="chat-form" id="messageForm">
-              <input id="messageText" placeholder="Escreva sua resposta">
-              <button class="btn primary" type="submit">Enviar</button>
-            </form>
           </div>
         </div>
       </section>
@@ -1070,20 +978,38 @@
         <div class="top">
           <div>
             <p class="eyebrow">Assinaturas</p>
-            <h1>Grátis para testar, pago quando virar ferramenta de trabalho.</h1>
-            <p>O limite gratuito é por conexão confirmada, ou seja, só conta depois que os dois responderem.</p>
+            <h1 id="plansTitle">Seu plano FreeLab Hub.</h1>
+            <p id="plansCopy">O limite gratuito é contado por contato liberado via WhatsApp. O plano pago libera contatos sem limite.</p>
           </div>
         </div>
-        <div class="grid">
-          <div class="box">
+        <div class="grid" id="plansGrid">
+          <div class="box plan-card" data-plan-role="lab">
             <h2>Clínica ou laboratório</h2>
             <h1>R$ 49,90/mês</h1>
-            <p class="text">Inclui contatos ilimitados com freelancers, vagas ilimitadas, álbum de casos e destaque para urgências.</p>
+            <p class="text">Para quem procura protéticos freelancers, publica vagas e quer acesso rápido aos profissionais certos.</p>
+            <div class="chips">
+              <span class="chip on">3 contatos grátis</span>
+              <span class="chip">Vagas ilimitadas</span>
+              <span class="chip">WhatsApp liberado</span>
+              <span class="chip">Destaque para urgências</span>
+            </div>
+            <div class="actions">
+              <button class="btn primary" type="button">Ativar plano laboratório</button>
+            </div>
           </div>
-          <div class="box">
-            <h2>Freelancer</h2>
+          <div class="box plan-card" data-plan-role="freelancer">
+            <h2>Freelancer protético</h2>
             <h1>R$ 9,90/mês</h1>
-            <p class="text">Inclui contatos ilimitados com clínicas/labs, portfólio completo, especialidades e prioridade na busca.</p>
+            <p class="text">Para quem oferece serviços, monta portfólio e quer receber oportunidades de clínicas e laboratórios.</p>
+            <div class="chips">
+              <span class="chip on">5 contatos grátis</span>
+              <span class="chip">Portfólio com fotos</span>
+              <span class="chip">WhatsApp liberado</span>
+              <span class="chip">Prioridade na busca</span>
+            </div>
+            <div class="actions">
+              <button class="btn primary" type="button">Ativar plano freelancer</button>
+            </div>
           </div>
         </div>
       </section>
@@ -1168,18 +1094,6 @@
           adElements: "",
           adDescription: "Trabalho para labs com bancada organizada ou retirada combinada.",
           album: []
-        }
-      ],
-      threads: [
-        {
-          id: "thread-1",
-          participants: ["lab-demo", "freelancer-demo"],
-          jobUserId: "lab-demo",
-          freelancerUserId: "freelancer-demo",
-          messages: [
-            { from: "lab-demo", text: "Olá Lucas, você consegue avaliar um caso de E.max anterior?", time: "Hoje 09:20" },
-            { from: "freelancer-demo", text: "Consigo sim. Pode me mandar a referência de cor e prazo?", time: "Hoje 09:28" }
-          ]
         }
       ],
       classifieds: [
@@ -1292,7 +1206,7 @@
       $("#miniAvatar").innerHTML = avatar(user);
       $("#dashboardEyebrow").textContent = isLab ? "Procure freelancers" : "Receba oportunidades";
       $("#dashboardTitle").textContent = isLab ? "Contrate protéticos por especialidade." : "Mostre seu trabalho para clínicas e laboratórios.";
-      $("#dashboardCopy").textContent = isLab ? "Sua área prioriza profissionais disponíveis, portfólio e conversas abertas." : "Sua área prioriza vagas publicadas, pedidos de contato e seu álbum profissional.";
+      $("#dashboardCopy").textContent = isLab ? "Sua área prioriza profissionais disponíveis, portfólio e contato direto por WhatsApp." : "Sua área prioriza vagas publicadas, pedidos de contato e seu álbum profissional.";
       $("#mainCta").textContent = isLab ? "Ver freelancers" : "Ver vagas";
       $("#profileTitle").textContent = isLab ? "Perfil da clínica ou laboratório." : "Perfil profissional do freelancer.";
       $("#profileCopy").textContent = isLab ? "Cadastre seus dados, publique vagas com valor e quantidade de elementos." : "Cadastre especialidades, foto, portfólio e disponibilidade.";
@@ -1316,8 +1230,8 @@
       renderSpecialties();
       renderMetrics();
       renderMarket();
-      renderThreads();
       renderClassifieds();
+      renderPlans();
       updateQuota();
       save();
     }
@@ -1328,15 +1242,8 @@
     }
 
     function confirmedConnectionsFor(user) {
-      const internal = state.threads.filter(thread => {
-        if (!thread.participants.includes(user.id)) return false;
-        const hasMe = thread.messages.some(message => message.from === user.id);
-        const otherId = thread.participants.find(id => id !== user.id);
-        const hasOther = thread.messages.some(message => message.from === otherId);
-        return hasMe && hasOther;
-      }).length;
       const external = (state.externalConnections || []).filter(connection => connection.userId === user.id).length;
-      return internal + external;
+      return external;
     }
 
     function limitFor(user) {
@@ -1349,25 +1256,49 @@
       const remaining = Math.max(0, limitFor(user) - used);
       $("#quotaNumber").textContent = remaining;
       $("#quotaText").textContent = user.role === "lab"
-        ? "conexões grátis restantes com freelancers"
-        : "conexões grátis restantes com clínicas/labs";
+        ? "contatos grátis restantes com freelancers"
+        : "contatos grátis restantes com clínicas/labs";
     }
 
     function renderMetrics() {
       const user = currentUser();
       const jobs = state.users.filter(item => item.role === "lab" && item.adTitle);
       const freelancers = state.users.filter(item => item.role === "freelancer" && item.adTitle);
-      const threads = state.threads.filter(thread => thread.participants.includes(user.id));
       $("#mOpen").textContent = jobs.length;
       $("#mPros").textContent = freelancers.length;
-      $("#mThreads").textContent = threads.length;
+      $("#mClassifieds").textContent = state.classifieds.length;
       $("#mConnections").textContent = confirmedConnectionsFor(user);
       $("#mOpenLabel").textContent = user.role === "lab" ? "vagas publicadas" : "vagas abertas";
 
       const suggestions = user.role === "lab" ? freelancers : jobs;
       $("#primaryListTitle").textContent = user.role === "lab" ? "Freelancers indicados" : "Vagas indicadas";
       $("#dashboardPrimary").innerHTML = suggestions.slice(0, 3).map(card).join("") || `<div class="empty">Complete seu perfil para receber sugestões.</div>`;
-      $("#dashboardThreads").innerHTML = threads.slice(0, 3).map(threadSummary).join("") || `<div class="empty">Nenhuma conversa ainda.</div>`;
+      $("#dashboardPlan").innerHTML = planSummary(user);
+    }
+
+    function planSummary(user) {
+      const isLab = user.role === "lab";
+      return `
+        <article class="card">
+          <div class="card-head">
+            <div>
+              <h3>${isLab ? "Plano clínica/laboratório" : "Plano freelancer"}</h3>
+              <div class="meta">${isLab ? "R$ 49,90/mês" : "R$ 9,90/mês"} · ${limitFor(user)} contatos grátis para testar</div>
+            </div>
+            <div class="price">${Math.max(0, limitFor(user) - confirmedConnectionsFor(user))} grátis</div>
+          </div>
+          <p class="text">${isLab ? "Publique vagas, encontre freelancers por especialidade e chame direto no WhatsApp." : "Monte seu portfólio, mostre especialidades e receba contatos de clínicas e laboratórios."}</p>
+          <div class="actions"><button class="btn primary" data-jump="plans">Ver meu plano</button></div>
+        </article>`;
+    }
+
+    function renderPlans() {
+      const user = currentUser();
+      $("#plansTitle").textContent = user.role === "lab" ? "Plano para clínica ou laboratório." : "Plano para freelancer protético.";
+      $("#plansCopy").textContent = user.role === "lab"
+        ? "Você começa com 3 contatos gratuitos com freelancers. Depois, o plano libera contatos ilimitados e vagas sem limite."
+        : "Você começa com 5 contatos gratuitos com clínicas ou laboratórios. Depois, o plano libera contatos ilimitados e mais visibilidade.";
+      $all("[data-plan-role]").forEach(card => card.classList.toggle("hidden", card.dataset.planRole !== user.role));
     }
 
     function filteredUsers(role) {
@@ -1410,7 +1341,7 @@
           <p class="text"><strong>${secondary}</strong><br>${user.adDescription || user.bio || ""}</p>
           <div class="album">${album(user).slice(0, 4).map(src => `<div class="shot"><img src="${src}" alt=""></div>`).join("") || `<div class="shot">Foto</div><div class="shot">Foto</div>`}</div>
           <div class="actions">
-            <button class="btn primary" data-message="${user.id}">Enviar mensagem</button>
+            <button class="btn primary" data-whatsapp-user="${user.id}">Chamar no WhatsApp</button>
             <button class="btn" data-view="${user.id}">Ver perfil</button>
           </div>
         </article>`;
@@ -1418,54 +1349,6 @@
 
     function album(user) {
       return user.album || [];
-    }
-
-    function threadSummary(thread) {
-      const user = currentUser();
-      const other = userById(thread.participants.find(id => id !== user.id));
-      const connected = isConnected(thread, user.id);
-      return `
-        <article class="card">
-          <div class="card-head">
-            <div class="card-title">
-              <div class="avatar">${avatar(other)}</div>
-              <div>
-                <h3>${other.name}</h3>
-                <div class="meta">${connected ? "Conexão confirmada" : "Aguardando resposta dos dois lados"}</div>
-              </div>
-            </div>
-          </div>
-          <p class="text">${thread.messages.at(-1)?.text || ""}</p>
-        </article>`;
-    }
-
-    function isConnected(thread, myId) {
-      const otherId = thread.participants.find(id => id !== myId);
-      return thread.messages.some(message => message.from === myId) && thread.messages.some(message => message.from === otherId);
-    }
-
-    function renderThreads() {
-      const user = currentUser();
-      const threads = state.threads.filter(thread => thread.participants.includes(user.id));
-      if (!state.activeThread && threads[0]) state.activeThread = threads[0].id;
-      $("#threadList").innerHTML = threads.map(thread => {
-        const other = userById(thread.participants.find(id => id !== user.id));
-        const connected = isConnected(thread, user.id);
-        return `<button class="thread-button ${state.activeThread === thread.id ? "active" : ""}" data-thread="${thread.id}">
-          <strong>${other.name}</strong><br>
-          <span class="meta">${connected ? "Conexão contando no limite" : "Ainda não conta como conexão"}</span>
-        </button>`;
-      }).join("") || `<div class="empty">Nenhuma conversa. Envie mensagem pelo marketplace.</div>`;
-
-      const active = state.threads.find(thread => thread.id === state.activeThread);
-      if (!active) {
-        $("#threadTitle").textContent = "Selecione uma conversa";
-        $("#chatLog").innerHTML = `<div class="empty">Sem conversa selecionada.</div>`;
-        return;
-      }
-      const other = userById(active.participants.find(id => id !== user.id));
-      $("#threadTitle").textContent = `${other.name} · ${isConnected(active, user.id) ? "conexão confirmada" : "pré-conexão"}`;
-      $("#chatLog").innerHTML = active.messages.map(message => `<div class="bubble ${message.from === user.id ? "mine" : ""}">${message.text}<br><span class="meta">${message.time}</span></div>`).join("");
     }
 
     function renderClassifieds() {
@@ -1480,10 +1363,9 @@
           </div>
           <p class="text">${item.description}</p>
           <div class="actions">
-            <button class="btn primary" data-class-message="${item.id}">Mensagem interna</button>
-            <button class="btn teal" data-class-whatsapp="${item.id}">Chamar no WhatsApp</button>
+            <button class="btn primary" data-class-whatsapp="${item.id}">Chamar no WhatsApp</button>
           </div>
-          <p class="hint">WhatsApp abre contato direto e consome 1 crédito de conexão.</p>
+          <p class="hint">WhatsApp abre contato direto e consome 1 crédito de contato.</p>
         </article>`).join("");
     }
 
@@ -1501,54 +1383,35 @@
       $("#albumPreview").innerHTML = albumBuffer.map(src => `<img src="${src}" alt="">`).join("");
     }
 
-    function openThreadWith(otherId) {
-      const me = currentUser();
-      if (otherId === me.id) return toast("Este é o seu próprio perfil.");
-      let thread = state.threads.find(item => item.participants.includes(me.id) && item.participants.includes(otherId));
-      if (!thread) {
-        thread = {
-          id: crypto.randomUUID(),
-          participants: [me.id, otherId],
-          messages: [{ from: me.id, text: "Olá, vi seu perfil no FreeLab Hub e gostaria de conversar.", time: "Agora" }]
-        };
-        state.threads.unshift(thread);
-        state.activeThread = thread.id;
-        save();
-      } else {
-        state.activeThread = thread.id;
-      }
-      renderAll();
-      document.querySelector('[data-tab="messages"]').click();
-    }
-
-    function openClassifiedThread(classifiedId) {
-      const item = state.classifieds.find(classified => classified.id === classifiedId);
-      if (!item) return toast("Classificado não encontrado.");
-      const ownerId = item.ownerId || "lab-demo";
-      const me = currentUser();
-      if (ownerId === me.id) return toast("Este classificado é seu.");
-      let thread = state.threads.find(entry => entry.participants.includes(me.id) && entry.participants.includes(ownerId));
-      if (!thread) {
-        thread = {
-          id: crypto.randomUUID(),
-          participants: [me.id, ownerId],
-          classifiedId,
-          messages: [{ from: me.id, text: `Olá, vi o classificado "${item.title}" e gostaria de conversar.`, time: "Agora" }]
-        };
-        state.threads.unshift(thread);
-      } else {
-        thread.messages.push({ from: me.id, text: `Tenho interesse no classificado "${item.title}".`, time: "Agora" });
-      }
-      state.activeThread = thread.id;
-      save();
-      renderAll();
-      document.querySelector('[data-tab="messages"]').click();
-    }
-
     function normalizePhone(phone) {
       const digits = String(phone || "").replace(/\D/g, "");
       if (!digits) return "";
       return digits.startsWith("55") ? digits : `55${digits}`;
+    }
+
+    function openUserWhatsapp(targetId) {
+      const target = userById(targetId);
+      const me = currentUser();
+      if (!target || target.id === me.id) return toast("Não dá para chamar seu próprio cadastro.");
+      state.externalConnections = state.externalConnections || [];
+      const key = `user:${target.id}:whatsapp`;
+      const alreadyUsed = state.externalConnections.some(connection => connection.userId === me.id && connection.key === key);
+      const remaining = Math.max(0, limitFor(me) - confirmedConnectionsFor(me));
+      if (!alreadyUsed && remaining <= 0) {
+        toast("Você atingiu o limite gratuito. Assine para liberar mais contatos.");
+        document.querySelector('[data-tab="plans"]').click();
+        return;
+      }
+      if (!alreadyUsed) {
+        state.externalConnections.push({ id: crypto.randomUUID(), userId: me.id, targetId: target.id, key, source: "whatsapp", createdAt: new Date().toISOString() });
+      }
+      save();
+      updateQuota();
+      renderMetrics();
+      const phone = normalizePhone(target.phone);
+      const text = encodeURIComponent(`Olá, vi seu cadastro no FreeLab Hub e gostaria de conversar.`);
+      if (phone) window.open(`https://wa.me/${phone}?text=${text}`, "_blank");
+      else toast("Contato contabilizado, mas esse usuário ainda não cadastrou celular.");
     }
 
     function openClassifiedWhatsapp(classifiedId) {
@@ -1562,7 +1425,7 @@
       const alreadyUsed = state.externalConnections.some(connection => connection.userId === me.id && connection.key === key);
       const remaining = Math.max(0, limitFor(me) - confirmedConnectionsFor(me));
       if (!alreadyUsed && remaining <= 0) {
-        toast("Você atingiu o limite gratuito. Assine para liberar mais conexões.");
+        toast("Você atingiu o limite gratuito. Assine para liberar mais contatos.");
         document.querySelector('[data-tab="plans"]').click();
         return;
       }
@@ -1668,18 +1531,10 @@
       }
       const jump = event.target.closest("[data-jump]");
       if (jump) document.querySelector(`[data-tab="${jump.dataset.jump}"]`).click();
-      const message = event.target.closest("[data-message]");
-      if (message) openThreadWith(message.dataset.message);
-      const classMessage = event.target.closest("[data-class-message]");
-      if (classMessage) openClassifiedThread(classMessage.dataset.classMessage);
+      const whatsappUser = event.target.closest("[data-whatsapp-user]");
+      if (whatsappUser) openUserWhatsapp(whatsappUser.dataset.whatsappUser);
       const classWhatsapp = event.target.closest("[data-class-whatsapp]");
       if (classWhatsapp) openClassifiedWhatsapp(classWhatsapp.dataset.classWhatsapp);
-      const threadButton = event.target.closest("[data-thread]");
-      if (threadButton) {
-        state.activeThread = threadButton.dataset.thread;
-        save();
-        renderThreads();
-      }
     });
 
     $("#searchInput").addEventListener("input", renderMarket);
@@ -1738,20 +1593,6 @@
       renderAll();
       toast(user.role === "lab" ? "Vaga publicada." : "Serviço publicado.");
       document.querySelector('[data-tab="market"]').click();
-    });
-
-    $("#messageForm").addEventListener("submit", event => {
-      event.preventDefault();
-      const text = $("#messageText").value.trim();
-      if (!text) return;
-      const thread = state.threads.find(item => item.id === state.activeThread);
-      if (!thread) return toast("Selecione uma conversa.");
-      const wasConnected = isConnected(thread, currentUser().id);
-      thread.messages.push({ from: currentUser().id, text, time: "Agora" });
-      $("#messageText").value = "";
-      save();
-      renderAll();
-      if (!wasConnected && isConnected(thread, currentUser().id)) toast("Agora virou conexão confirmada e passou a contar no limite.");
     });
 
     $("#classifiedForm").addEventListener("submit", event => {

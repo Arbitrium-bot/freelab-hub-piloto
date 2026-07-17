@@ -26,10 +26,10 @@ O que já está incluído
 - Perfil com foto, especialidades, celular, e-mail e bio.
 - Álbum de fotos para trabalhos/portfólio.
 - Publicação de vaga com valor e quantidade de elementos.
-- Mensagem interna entre usuários.
-- Conexão só conta quando os dois lados respondem na conversa interna.
-- Classificados com mensagem interna e botão de WhatsApp.
-- WhatsApp conta como conexão e subtrai do crédito.
+- Contato direto por WhatsApp, sem mensagens internas.
+- Classificados com botão de WhatsApp.
+- WhatsApp conta como contato e subtrai do crédito gratuito.
+- Planos individuais por tipo de cadastro.
 - Planos simulados: clínica/laboratório R$ 49,90 e freelancer R$ 9,90.
 - Estrutura PWA básica para instalar como app futuramente.
 
