@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: freelab-hub-piloto
+    name: freelab-hub-app
     runtime: python
     plan: free
     buildCommand: "pip install -r requirements.txt"
@@ -13,7 +13,7 @@ services:
           name: freelab-hub-db
           property: connectionString
       - key: APP_BASE_URL
-        value: "https://freelab-hub-piloto.onrender.com"
+        value: "https://freelab-hub-app.onrender.com"
       - key: ADMIN_EMAIL
         value: "admin@freelabhub.com"
       - key: ADMIN_PASSWORD

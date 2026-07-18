@@ -31,7 +31,7 @@ O que agora e real no backend
 Variaveis importantes no Render
 - HOST=0.0.0.0
 - DATABASE_URL=e criada automaticamente pelo banco freelab-hub-db no render.yaml
-- APP_BASE_URL=https://freelab-hub-piloto.onrender.com
+- APP_BASE_URL=https://freelab-hub-app.onrender.com
 - ADMIN_EMAIL=admin@freelabhub.com
 - ADMIN_PASSWORD=defina_uma_senha_forte
 - SMTP_HOST=servidor SMTP do e-mail
@@ -47,3 +47,9 @@ Para pagamento 100% real e necessario configurar uma conta de gateway, criar os 
 
 PostgreSQL no Render
 O arquivo render.yaml define o banco freelab-hub-db. Ao criar/sincronizar o Blueprint no Render, se esse banco nao existir, o Render cria o PostgreSQL e injeta DATABASE_URL no web service Python.
+
+Importante sobre falha no Render
+O projeto antigo era static_site. O Render pode falhar se tentar transformar esse servico estatico em web service Python com o mesmo nome. Por isso o render.yaml agora cria o servico novo freelab-hub-app. Use:
+https://freelab-hub-app.onrender.com
+
+Depois que o novo web service estiver funcionando, o servico estatico antigo pode ser removido ou deixado apenas como historico.
