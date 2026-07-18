@@ -517,6 +517,107 @@
       gap: 16px;
     }
 
+    .map-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.25fr) minmax(320px, .75fr);
+      gap: 16px;
+      align-items: start;
+    }
+
+    .world-map {
+      position: relative;
+      min-height: 430px;
+      overflow: hidden;
+      border-radius: var(--radius);
+      border: 1px solid var(--line);
+      background:
+        radial-gradient(circle at 30% 26%, rgba(0, 167, 173, .22), transparent 12rem),
+        radial-gradient(circle at 70% 38%, rgba(217, 168, 61, .18), transparent 14rem),
+        linear-gradient(180deg, #eaf7f6, #f8fbfb);
+      box-shadow: var(--shadow);
+    }
+
+    .map-grid-lines {
+      position: absolute;
+      inset: 0;
+      opacity: .34;
+      background-image:
+        linear-gradient(rgba(6, 47, 52, .08) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(6, 47, 52, .08) 1px, transparent 1px);
+      background-size: 12.5% 20%;
+    }
+
+    .continent {
+      position: absolute;
+      border-radius: 48% 52% 46% 54%;
+      background: rgba(6, 47, 52, .13);
+      box-shadow: inset 0 0 0 1px rgba(6, 47, 52, .08);
+    }
+
+    .continent.america-north { width: 27%; height: 30%; left: 10%; top: 16%; transform: rotate(-18deg); }
+    .continent.america-south { width: 18%; height: 29%; left: 27%; top: 48%; transform: rotate(22deg); }
+    .continent.europe { width: 17%; height: 14%; left: 48%; top: 24%; transform: rotate(8deg); }
+    .continent.africa { width: 20%; height: 27%; left: 50%; top: 40%; transform: rotate(-7deg); }
+    .continent.asia { width: 30%; height: 26%; left: 63%; top: 24%; transform: rotate(10deg); }
+    .continent.oceania { width: 14%; height: 11%; left: 77%; top: 66%; transform: rotate(14deg); }
+
+    .map-pin {
+      position: absolute;
+      width: 14px;
+      height: 14px;
+      border-radius: 999px 999px 999px 0;
+      background: var(--teal);
+      border: 2px solid white;
+      box-shadow: 0 10px 22px rgba(6, 47, 52, .28);
+      transform: translate(-50%, -50%) rotate(-45deg);
+    }
+
+    .map-pin.lab { background: var(--gold); }
+
+    .map-pin span {
+      position: absolute;
+      left: 18px;
+      top: -12px;
+      min-width: 120px;
+      transform: rotate(45deg);
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, .92);
+      border: 1px solid var(--line);
+      padding: 5px 7px;
+      color: var(--ink);
+      font-size: .72rem;
+      font-weight: 850;
+      opacity: 0;
+      pointer-events: none;
+      transition: .18s ease;
+    }
+
+    .map-pin:hover span { opacity: 1; }
+
+    .map-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .map-mini-card {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, .86);
+      padding: 12px;
+    }
+
+    .map-mini-card h3 {
+      margin: 0 0 5px;
+      font-size: 1rem;
+    }
+
+    .map-mini-card p {
+      margin: 0;
+      color: var(--muted);
+      font-size: .86rem;
+      line-height: 1.42;
+    }
+
     .card {
       padding: 16px;
       margin-bottom: 12px;
@@ -763,11 +864,12 @@
 
     @media (max-width: 1080px) {
       .auth, .app, .form-panel, .messages {
-        grid-template-columns: 1fr;
+        grid-template-columns: minmax(0, 1fr);
       }
 
       .public-strip,
-      .testimonial-grid {
+      .testimonial-grid,
+      .map-layout {
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
 
@@ -795,10 +897,14 @@
       .rail {
         position: static;
         height: auto;
+        min-width: 0;
+        max-width: 100vw;
+        overflow: hidden;
       }
 
       .nav {
         display: flex;
+        max-width: 100%;
         overflow-x: auto;
       }
 
@@ -864,10 +970,11 @@
       }
 
       main { padding: 18px 12px 32px; }
-      .form-grid, .toolbar, .metrics, .grid, .chat-form, .public-strip, .testimonial-grid { grid-template-columns: 1fr; }
+      .form-grid, .toolbar, .metrics, .grid, .chat-form, .public-strip, .testimonial-grid, .map-layout { grid-template-columns: 1fr; }
       .album, .preview { grid-template-columns: repeat(2, 1fr); }
       .bubble { max-width: 100%; }
       .top { flex-direction: column; }
+      .world-map { min-height: 300px; }
     }
   </style>
 </head>
@@ -925,6 +1032,12 @@
           </label>
           <label>Cidade
             <input id="registerCity" required placeholder="Ex.: São Paulo - SP">
+          </label>
+          <label>País
+            <input id="registerCountry" required placeholder="Ex.: Brasil">
+          </label>
+          <label class="wide">Endereço ou região
+            <input id="registerAddress" required placeholder="Ex.: Vila Mariana, São Paulo">
           </label>
           <label>E-mail
             <input id="registerEmail" type="email" required placeholder="seuemail@email.com">
@@ -1056,8 +1169,9 @@
         <button class="active" data-tab="dashboard">Painel <span>01</span></button>
         <button data-tab="market">Marketplace <span>02</span></button>
         <button data-tab="messages">Mensagens <span>03</span></button>
-        <button data-tab="profile">Cadastro <span>04</span></button>
-        <button data-tab="plans">Meu plano <span>05</span></button>
+        <button data-tab="map">Mapa <span>04</span></button>
+        <button data-tab="profile">Cadastro <span>05</span></button>
+        <button data-tab="plans">Meu plano <span>06</span></button>
       </nav>
 
       <div class="quota">
@@ -1156,6 +1270,36 @@
         </div>
       </section>
 
+      <section class="panel" id="map">
+        <div class="top">
+          <div>
+            <p class="eyebrow">Mapa mundial</p>
+            <h1>Encontre conexões por país, cidade e região.</h1>
+            <p>O piloto já guarda país, cidade e endereço/região no cadastro. Os pins usam uma posição aproximada por país e ficam prontos para uma integração futura com mapa real.</p>
+          </div>
+          <button class="btn primary" data-jump="profile">Atualizar localização</button>
+        </div>
+
+        <div class="metrics" id="mapStats"></div>
+        <div class="map-layout">
+          <div class="world-map" id="worldMap" aria-label="Mapa mundial com cadastros">
+            <div class="map-grid-lines"></div>
+            <div class="continent america-north"></div>
+            <div class="continent america-south"></div>
+            <div class="continent europe"></div>
+            <div class="continent africa"></div>
+            <div class="continent asia"></div>
+            <div class="continent oceania"></div>
+            <div id="mapPins"></div>
+          </div>
+          <div class="box">
+            <h2>Cadastros no mapa</h2>
+            <p class="hint">Use esta lista para conferir a localização declarada. Endereço completo deve ser opcional ou liberado só após contato confirmado na versão comercial.</p>
+            <div class="map-list" id="mapList"></div>
+          </div>
+        </div>
+      </section>
+
       <section class="panel" id="profile">
         <div class="top">
           <div>
@@ -1174,6 +1318,12 @@
               </label>
               <label>Cidade
                 <input id="profileCity" required>
+              </label>
+              <label>País
+                <input id="profileCountry" required>
+              </label>
+              <label class="wide">Endereço ou região
+                <input id="profileAddress" required>
               </label>
               <label>E-mail
                 <input id="profileEmail" type="email" required>
@@ -1341,6 +1491,42 @@
     ];
 
     const STORAGE_KEY = "freelab-hub-comercial-v1";
+    const countryPins = {
+      "brasil": { x: 35, y: 62, label: "Brasil" },
+      "brazil": { x: 35, y: 62, label: "Brasil" },
+      "estados unidos": { x: 22, y: 31, label: "Estados Unidos" },
+      "united states": { x: 22, y: 31, label: "Estados Unidos" },
+      "usa": { x: 22, y: 31, label: "Estados Unidos" },
+      "canada": { x: 21, y: 21, label: "Canadá" },
+      "canadá": { x: 21, y: 21, label: "Canadá" },
+      "mexico": { x: 20, y: 41, label: "México" },
+      "méxico": { x: 20, y: 41, label: "México" },
+      "portugal": { x: 48, y: 36, label: "Portugal" },
+      "espanha": { x: 50, y: 36, label: "Espanha" },
+      "spain": { x: 50, y: 36, label: "Espanha" },
+      "frança": { x: 52, y: 33, label: "França" },
+      "france": { x: 52, y: 33, label: "França" },
+      "italia": { x: 54, y: 37, label: "Itália" },
+      "itália": { x: 54, y: 37, label: "Itália" },
+      "germany": { x: 54, y: 31, label: "Alemanha" },
+      "alemanha": { x: 54, y: 31, label: "Alemanha" },
+      "reino unido": { x: 50, y: 29, label: "Reino Unido" },
+      "united kingdom": { x: 50, y: 29, label: "Reino Unido" },
+      "argentina": { x: 33, y: 73, label: "Argentina" },
+      "chile": { x: 30, y: 72, label: "Chile" },
+      "colombia": { x: 29, y: 53, label: "Colômbia" },
+      "peru": { x: 30, y: 60, label: "Peru" },
+      "china": { x: 76, y: 39, label: "China" },
+      "japão": { x: 86, y: 41, label: "Japão" },
+      "japan": { x: 86, y: 41, label: "Japão" },
+      "australia": { x: 82, y: 71, label: "Austrália" },
+      "austrália": { x: 82, y: 71, label: "Austrália" },
+      "india": { x: 70, y: 48, label: "Índia" },
+      "índia": { x: 70, y: 48, label: "Índia" },
+      "africa do sul": { x: 56, y: 73, label: "África do Sul" },
+      "áfrica do sul": { x: 56, y: 73, label: "África do Sul" },
+      "south africa": { x: 56, y: 73, label: "África do Sul" }
+    };
 
     const defaults = {
       sessionEmail: "clinica@demo.com",
@@ -1351,6 +1537,8 @@
           role: "lab",
           name: "Clínica Vila Nova",
           city: "São Paulo - SP",
+          country: "Brasil",
+          address: "Vila Nova, São Paulo - SP",
           email: "clinica@demo.com",
           phone: "(11) 98873-7694",
           password: "123456",
@@ -1370,6 +1558,8 @@
           role: "freelancer",
           name: "Lucas Fernandes",
           city: "Guarulhos - SP",
+          country: "Brasil",
+          address: "Guarulhos - SP",
           email: "freelancer@demo.com",
           phone: "(11) 97777-0000",
           password: "123456",
@@ -1389,6 +1579,8 @@
           role: "freelancer",
           name: "Helen Prado",
           city: "Santo André - SP",
+          country: "Brasil",
+          address: "Santo André - SP",
           email: "helen@demo.com",
           phone: "(11) 96666-0000",
           password: "123456",
@@ -1418,7 +1610,18 @@
     function load() {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (!saved) return structuredClone(defaults);
-      try { return { ...structuredClone(defaults), ...JSON.parse(saved) }; }
+      try {
+        const loaded = { ...structuredClone(defaults), ...JSON.parse(saved) };
+        loaded.users = (loaded.users || []).map(user => {
+          const fallback = defaults.users.find(item => item.id === user.id);
+          return {
+            ...user,
+            country: user.country || fallback?.country || "",
+            address: user.address || fallback?.address || ""
+          };
+        });
+        return loaded;
+      }
       catch { return structuredClone(defaults); }
     }
 
@@ -1446,6 +1649,24 @@
 
     function avatar(user) {
       return user.avatar ? `<img src="${user.avatar}" alt="">` : initials(user.name);
+    }
+
+    function locationLabel(user, includeAddress = false) {
+      const city = user.city || "Cidade não informada";
+      const country = user.country || "País não informado";
+      const address = user.address || "Região não informada";
+      return includeAddress ? `${address}<br>${city}, ${country}` : `${city}, ${country}`;
+    }
+
+    function mapPosition(user, index = 0) {
+      const key = String(user.country || "").trim().toLowerCase();
+      const base = countryPins[key] || countryPins.brasil;
+      const offset = ((index % 5) - 2) * 1.4;
+      return {
+        x: Math.max(5, Math.min(95, base.x + offset)),
+        y: Math.max(8, Math.min(88, base.y + (index % 3 - 1) * 1.2)),
+        country: base.label
+      };
     }
 
     function toast(message) {
@@ -1500,6 +1721,8 @@
 
       $("#profileName").value = user.name;
       $("#profileCity").value = user.city;
+      $("#profileCountry").value = user.country || "Brasil";
+      $("#profileAddress").value = user.address || user.city || "";
       $("#profileEmail").value = user.email;
       $("#profilePhone").value = user.phone;
       $("#profileBio").value = user.bio || "";
@@ -1516,6 +1739,7 @@
       renderThreads();
       renderClassifieds();
       renderPlans();
+      renderMap();
       updateQuota();
       save();
     }
@@ -1597,7 +1821,7 @@
       const specialty = $("#specialtyFilter").value;
       return state.users.filter(user => {
         if (user.role !== role || !user.adTitle) return false;
-        const text = [user.name, user.city, user.adTitle, user.adDescription, user.bio, ...(user.specialties || [])].join(" ").toLowerCase();
+        const text = [user.name, user.city, user.country, user.address, user.adTitle, user.adDescription, user.bio, ...(user.specialties || [])].join(" ").toLowerCase();
         const matchesText = !q || text.includes(q);
         const matchesSpec = specialty === "todas" || user.adSpecialty === specialty || (user.specialties || []).includes(specialty);
         return matchesText && matchesSpec;
@@ -1613,6 +1837,31 @@
       $("#freelancerList").innerHTML = freelancers.map(card).join("") || `<div class="empty">Nenhum freelancer encontrado.</div>`;
     }
 
+    function renderMap() {
+      const listed = state.users.filter(user => user.adTitle || user.verified);
+      const countries = new Set(listed.map(user => user.country || "Brasil"));
+      const labs = listed.filter(user => user.role === "lab").length;
+      const freelancers = listed.filter(user => user.role === "freelancer").length;
+      $("#mapStats").innerHTML = `
+        <div class="metric"><strong>${countries.size}</strong><span>país(es) com cadastros</span></div>
+        <div class="metric"><strong>${listed.length}</strong><span>perfis localizados</span></div>
+        <div class="metric"><strong>${labs}</strong><span>clínicas/labs no mapa</span></div>
+        <div class="metric"><strong>${freelancers}</strong><span>freelancers no mapa</span></div>`;
+      $("#mapPins").innerHTML = listed.map((user, index) => {
+        const point = mapPosition(user, index);
+        return `<button class="map-pin ${user.role}" style="left:${point.x}%;top:${point.y}%;" type="button" data-map-user="${user.id}" aria-label="${user.name} em ${locationLabel(user)}"><span>${user.name}<br>${locationLabel(user)}</span></button>`;
+      }).join("");
+      $("#mapList").innerHTML = listed.map(user => `
+        <article class="map-mini-card">
+          <h3>${user.name}</h3>
+          <p><strong>${user.role === "lab" ? "Clínica/laboratório" : "Freelancer protético"}</strong><br>${locationLabel(user, true)}<br>${user.adTitle || user.bio || "Perfil cadastrado"}</p>
+          <div class="actions">
+            <button class="btn primary" data-message="${user.id}">Mensagem</button>
+            <button class="btn teal" data-whatsapp-user="${user.id}">WhatsApp</button>
+          </div>
+        </article>`).join("") || `<div class="empty">Nenhum cadastro com localização ainda.</div>`;
+    }
+
     function card(user) {
       const isLab = user.role === "lab";
       const secondary = isLab ? `${user.adElements || 1} elemento(s) para produzir` : "Perfil com álbum profissional";
@@ -1625,14 +1874,14 @@
               <div class="avatar">${avatar(user)}</div>
               <div>
                 <h3>${user.adTitle}</h3>
-                <div class="meta">${user.name}<br>${user.city}</div>
+                <div class="meta">${user.name}<br>${locationLabel(user)}</div>
               </div>
             </div>
             <div class="price">${money(user.adValue)}</div>
           </div>
           <div class="trust-line">
             <span class="trust-badge">${user.verified ? "E-mail confirmado" : "Aguardando verificação"}</span>
-            <span class="trust-badge">★ ${rating}</span>
+            <span class="trust-badge">Nota ${rating}</span>
             <span class="trust-badge">${response}</span>
             <span class="trust-badge">Portfólio visível</span>
           </div>
@@ -1871,6 +2120,8 @@
         role: $("#registerRole").value,
         name: $("#registerName").value.trim(),
         city: $("#registerCity").value.trim(),
+        country: $("#registerCountry").value.trim(),
+        address: $("#registerAddress").value.trim(),
         email,
         phone: $("#registerPhone").value.trim(),
         password: $("#registerPassword").value,
@@ -1940,6 +2191,11 @@
       if (trustReport) toast("Denúncia registrada para análise da moderação.");
       const trustBlock = event.target.closest("[data-trust-block]");
       if (trustBlock) toast("Usuário bloqueado neste piloto.");
+      const mapUser = event.target.closest("[data-map-user]");
+      if (mapUser) {
+        const user = userById(mapUser.dataset.mapUser);
+        if (user) toast(`${user.name}: ${locationLabel(user).replace("<br>", " ")}`);
+      }
     });
 
     $("#searchInput").addEventListener("input", renderMarket);
@@ -1976,6 +2232,8 @@
       const user = currentUser();
       user.name = $("#profileName").value.trim();
       user.city = $("#profileCity").value.trim();
+      user.country = $("#profileCountry").value.trim();
+      user.address = $("#profileAddress").value.trim();
       user.email = $("#profileEmail").value.trim();
       user.phone = $("#profilePhone").value.trim();
       user.bio = $("#profileBio").value.trim();
