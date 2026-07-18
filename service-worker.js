@@ -1,4 +1,4 @@
-const CACHE_NAME = "freela-b-hub-comercial-v8";
+const CACHE_NAME = "freela-b-hub-comercial-v9";
 const ASSETS = ["./", "index.html", "manifest.json", "icon.svg", "freelab-hub-logo.png", "leaflet.css", "leaflet.js"];
 
 self.addEventListener("install", event => {

@@ -1840,6 +1840,12 @@
       $("#authScreen").classList.remove("hidden");
     }
 
+    function boot() {
+      const savedUser = state.users.find(user => user.email === state.sessionEmail && user.verified);
+      if (savedUser) showApp();
+      else showAuth();
+    }
+
     function applyLanguage(lang) {
       document.documentElement.lang = lang === "en" ? "en" : "pt-BR";
       $all("[data-lang]").forEach(button => button.classList.toggle("active", button.dataset.lang === lang));
@@ -2525,7 +2531,7 @@
 
     hydrateStatic();
     applyLanguage(state.language || "pt");
-    showAuth();
+    boot();
   </script>
 </body>
 </html>
