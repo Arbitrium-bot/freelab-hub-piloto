@@ -653,7 +653,26 @@
         grid-template-columns: 1fr;
       }
 
-      .hero { min-height: 420px; }
+      .auth {
+        align-content: start;
+      }
+
+      .auth .hero {
+        min-height: 0;
+        aspect-ratio: auto;
+      }
+
+      .auth .hero img {
+        height: auto;
+        aspect-ratio: 1408 / 768;
+        object-fit: contain;
+      }
+
+      .auth .hero-badge {
+        position: static;
+        margin: 8px 10px 10px;
+        max-width: none;
+      }
 
       .rail {
         position: static;
@@ -678,21 +697,7 @@
         gap: 12px;
       }
 
-      .hero {
-        min-height: 0;
-        aspect-ratio: auto;
-      }
-
-      .hero img {
-        height: auto;
-        aspect-ratio: 1408 / 768;
-        object-fit: contain;
-      }
-
       .hero-badge {
-        position: static;
-        margin: 8px 10px 10px;
-        max-width: none;
         padding: 10px 12px;
       }
 
