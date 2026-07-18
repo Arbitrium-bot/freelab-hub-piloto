@@ -1,4 +1,4 @@
-FreeLab Hub - Piloto
+Freela'B Hub - Piloto
 
 Este é o piloto navegável do marketplace para conectar clínicas/laboratórios e freelancers de prótese odontológica.
 

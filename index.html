@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#062f34">
-  <title>FreeLab Hub - Piloto</title>
+  <title>Freela'B Hub - Piloto</title>
   <link rel="manifest" href="manifest.json">
   <style>
     :root {
@@ -673,8 +673,53 @@
     }
 
     @media (max-width: 720px) {
-      .auth { padding: 10px; }
-      .hero { min-height: 360px; }
+      .auth {
+        padding: 10px;
+        gap: 12px;
+      }
+
+      .hero {
+        min-height: 0;
+        aspect-ratio: auto;
+      }
+
+      .hero img {
+        height: auto;
+        aspect-ratio: 1408 / 768;
+        object-fit: contain;
+      }
+
+      .hero-badge {
+        position: static;
+        margin: 8px 10px 10px;
+        max-width: none;
+        padding: 10px 12px;
+      }
+
+      .hero-badge strong { font-size: .88rem; }
+      .hero-badge span { display: none; }
+
+      .auth-card {
+        padding: 16px;
+      }
+
+      .brand-row {
+        margin-bottom: 14px;
+      }
+
+      input, select {
+        min-height: 48px;
+        padding: 12px 13px;
+      }
+
+      .switch button {
+        min-height: 46px;
+      }
+
+      .btn {
+        min-height: 46px;
+      }
+
       main { padding: 18px 12px 32px; }
       .form-grid, .toolbar, .metrics, .grid, .chat-form { grid-template-columns: 1fr; }
       .album, .preview { grid-template-columns: repeat(2, 1fr); }
@@ -686,7 +731,7 @@
 <body>
   <section class="auth" id="authScreen">
     <div class="hero">
-      <img src="freelab-hub-logo.png" alt="FreeLab Hub">
+      <img src="freelab-hub-logo.png" alt="Freela'B Hub">
       <div class="hero-badge">
         <strong>Cadastro profissional para clínicas, laboratórios e freelancers.</strong>
         <span>Ambiente limpo, privado e pronto para conexões qualificadas.</span>
@@ -697,7 +742,7 @@
       <div class="brand-row">
         <div class="logo-dot">FL</div>
         <div>
-          <h2>FreeLab Hub</h2>
+          <h2>Freela'B Hub</h2>
           <p>Marketplace profissional</p>
         </div>
       </div>
@@ -782,7 +827,7 @@
       <div class="brand-row">
         <div class="logo-dot">FL</div>
         <div>
-          <h2>FreeLab Hub</h2>
+          <h2>Freela'B Hub</h2>
           <p id="roleLabel">Painel</p>
         </div>
       </div>
@@ -1027,7 +1072,7 @@
         <div class="top">
           <div>
             <p class="eyebrow">Assinaturas</p>
-            <h1 id="plansTitle">Seu plano FreeLab Hub.</h1>
+            <h1 id="plansTitle">Seu plano Freela'B Hub.</h1>
             <p id="plansCopy">O limite gratuito é contado por contato liberado via WhatsApp. O plano pago libera contatos sem limite.</p>
           </div>
         </div>
@@ -1532,7 +1577,7 @@
       updateQuota();
       renderMetrics();
       const phone = normalizePhone(target.phone);
-      const text = encodeURIComponent(`Olá, vi seu cadastro no FreeLab Hub e gostaria de conversar.`);
+      const text = encodeURIComponent(`Olá, vi seu cadastro no Freela'B Hub e gostaria de conversar.`);
       if (phone) window.open(`https://wa.me/${phone}?text=${text}`, "_blank");
       else toast("Contato contabilizado, mas esse usuário ainda não cadastrou celular.");
     }
@@ -1559,7 +1604,7 @@
       updateQuota();
       renderMetrics();
       const phone = normalizePhone(owner.phone);
-      const text = encodeURIComponent(`Olá, vi seu classificado "${item.title}" no FreeLab Hub e gostaria de conversar.`);
+      const text = encodeURIComponent(`Olá, vi seu classificado "${item.title}" no Freela'B Hub e gostaria de conversar.`);
       if (phone) window.open(`https://wa.me/${phone}?text=${text}`, "_blank");
       else toast("WhatsApp contabilizado, mas esse usuário ainda não cadastrou celular.");
     }
