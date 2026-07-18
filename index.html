@@ -2403,7 +2403,10 @@
         showApp();
         return;
       } catch (error) {
-        if (location.protocol !== "file:" && error?.error && error.error !== "invalid_login") toast("Backend indisponível ou e-mail pendente. Usando modo local se possível.");
+        if (location.protocol !== "file:") {
+          toast(error?.error === "email_not_verified" ? "Confirme seu e-mail antes de entrar." : "Login indisponível no servidor. Tente novamente em instantes.");
+          return;
+        }
       }
       const user = state.users.find(item => item.email === email && item.password === password);
       if (!user) return toast("E-mail ou senha incorretos.");
@@ -2467,6 +2470,10 @@
         user.emailConfigured = data.emailConfigured;
       } catch {
         backendOnline = false;
+        if (location.protocol !== "file:") {
+          toast("Não foi possível criar o cadastro no servidor agora. Tente novamente em instantes.");
+          return;
+        }
       }
       if (!state.users.some(item => item.email === user.email)) state.users.push(user);
       save();
@@ -2485,8 +2492,10 @@
             return;
           }
         }
-        await geocodeUser(user);
-        user.verified = true; state.sessionEmail = user.email; save(); showApp();
+        if (location.protocol === "file:") {
+          await geocodeUser(user);
+          user.verified = true; state.sessionEmail = user.email; save(); showApp();
+        }
       };
       toast("Cadastro criado. Confirme o e-mail para entrar.");
     });

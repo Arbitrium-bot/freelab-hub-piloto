@@ -21,7 +21,7 @@ O que agora e real no backend
 - Login com sessao por cookie HttpOnly.
 - Senha guardada com hash PBKDF2.
 - Cadastro via API.
-- Confirmacao de e-mail real por SMTP quando SMTP_HOST/SMTP_USER/SMTP_PASSWORD estao configurados.
+- Confirmacao de e-mail real por HTTPS/Resend quando RESEND_API_KEY esta configurada, com SMTP como alternativa fora do plano free do Render.
 - Recuperacao de senha real por e-mail com token de 1 hora.
 - Estado do marketplace salvo no backend.
 - Painel admin separado para ver usuarios, verificar e bloquear.
@@ -38,6 +38,8 @@ Variaveis criadas pelo render.yaml
 - ADMIN_PASSWORD=defina_uma_senha_forte
 
 Variaveis para adicionar depois no Environment do Render, quando quiser ativar e-mail real e pagamento:
+- RESEND_API_KEY=chave_api_do_resend_para_envio_por_https
+- RESEND_FROM=Freela'B Hub <onboarding@resend.dev> ou remetente verificado
 - SMTP_HOST=servidor SMTP do e-mail
 - SMTP_PORT=587
 - SMTP_TLS=true
@@ -49,7 +51,7 @@ Variaveis para adicionar depois no Environment do Render, quando quiser ativar e
 - STRIPE_PAYMENT_LINK_FREELANCER=link_real_do_plano_freelancer
 
 Observacao
-Para o e-mail real funcionar no Render, abra o web service freelab-hub-app, entre em Environment e adicione SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD e SMTP_FROM. Depois clique em Save Changes/Manual Deploy. O painel admin mostra "SMTP ativo" quando a configuracao basica existe.
+Para o e-mail real funcionar no Render Free, prefira RESEND_API_KEY e RESEND_FROM, porque o Render Free pode bloquear saida SMTP para smtp.gmail.com nas portas 465/587 com erro Network is unreachable. Depois clique em Save Changes/Manual Deploy. O painel admin mostra o envio configurado quando a configuracao basica existe.
 
 Para pagamento 100% real e necessario configurar uma conta de gateway, criar os links/checkout dos planos e preencher as variaveis no Render. Sem essas chaves, o app registra a tentativa e avisa que falta configurar o gateway.
 

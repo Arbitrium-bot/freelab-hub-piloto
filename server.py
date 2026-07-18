@@ -11,6 +11,7 @@ from email.message import EmailMessage
 from http import HTTPStatus
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from urllib.error import HTTPError
 from urllib.parse import parse_qs, quote, urlparse
 from urllib.request import Request, urlopen
 
@@ -38,6 +39,8 @@ SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD", "")
 SMTP_FROM = os.environ.get("SMTP_FROM", SMTP_USER or "no-reply@freelabhub.com")
 SMTP_TLS = os.environ.get("SMTP_TLS", "true").lower() != "false"
 SMTP_SSL = os.environ.get("SMTP_SSL", "false").lower() == "true"
+RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
+RESEND_FROM = os.environ.get("RESEND_FROM", SMTP_FROM)
 
 
 def now():
@@ -321,6 +324,29 @@ def geocode(address):
 
 
 def send_email(to, subject, text):
+    if RESEND_API_KEY:
+        payload = json.dumps({
+            "from": RESEND_FROM,
+            "to": [to],
+            "subject": subject,
+            "text": text,
+        }).encode("utf-8")
+        request = Request(
+            "https://api.resend.com/emails",
+            data=payload,
+            headers={
+                "Authorization": f"Bearer {RESEND_API_KEY}",
+                "Content-Type": "application/json",
+            },
+            method="POST",
+        )
+        try:
+            with urlopen(request, timeout=15) as response:
+                return 200 <= response.status < 300
+        except HTTPError as exc:
+            detail = exc.read().decode("utf-8", errors="ignore")
+            raise RuntimeError(f"Resend API falhou: {exc.code} {detail[:180]}")
+
     if not SMTP_HOST:
         return False
     message = EmailMessage()
@@ -376,7 +402,7 @@ def send_password_reset_email(user):
 
 
 def email_ready():
-    return bool(SMTP_HOST and SMTP_FROM)
+    return bool(RESEND_API_KEY and RESEND_FROM) or bool(SMTP_HOST and SMTP_FROM)
 
 
 class Handler(SimpleHTTPRequestHandler):
