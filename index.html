@@ -1804,6 +1804,11 @@
       }
     }
 
+    function trackPage(action, page = location.pathname) {
+      if (!backendOnline && location.protocol === "file:") return;
+      api("/api/audit", { method: "POST", body: JSON.stringify({ action, page }) }).catch(() => {});
+    }
+
     function currentUser() {
       return state.users.find(user => user.email === state.sessionEmail) || state.users[0];
     }
@@ -2487,6 +2492,7 @@
         $all(".nav button").forEach(item => item.classList.toggle("active", item === button));
         $all(".panel").forEach(panel => panel.classList.toggle("active", panel.id === button.dataset.tab));
         if (button.dataset.tab === "map") setTimeout(() => mapInstance?.invalidateSize(), 80);
+        trackPage("tab:" + button.dataset.tab, "app");
       });
     });
 
@@ -2630,6 +2636,7 @@
     applyLanguage(state.language || "pt");
     boot();
     syncFromBackend();
+    trackPage("load", "index");
   </script>
 </body>
 </html>

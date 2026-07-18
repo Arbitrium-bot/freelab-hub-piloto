@@ -5,71 +5,132 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Admin - Freela'B Hub</title>
   <style>
-    :root { --deep:#062f34; --teal:#00a7ad; --line:#dfe7e7; --muted:#657476; --soft:#f4f8f8; --radius:8px; }
-    * { box-sizing: border-box; }
-    body { margin:0; font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif; color:#122527; background:#eef5f5; }
-    main { max-width:1180px; margin:0 auto; padding:28px 16px 48px; }
-    header { display:flex; justify-content:space-between; gap:16px; align-items:flex-start; margin-bottom:22px; }
+    :root { --deep:#062f34; --teal:#00a7ad; --line:#dfe7e7; --muted:#657476; --soft:#f4f8f8; --danger:#c65d5d; --radius:8px; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:Inter, system-ui, -apple-system, "Segoe UI", sans-serif; color:#122527; background:#eef5f5; }
+    main { max-width:1240px; margin:0 auto; padding:28px 16px 48px; }
+    header { display:flex; justify-content:space-between; gap:16px; align-items:flex-start; margin-bottom:18px; }
     h1, h2, h3, p { margin-top:0; }
     p { color:var(--muted); line-height:1.5; }
     .box, .card { background:white; border:1px solid var(--line); border-radius:var(--radius); padding:18px; box-shadow:0 18px 48px rgba(6,47,52,.08); }
+    .login { max-width:460px; margin:8vh auto; }
     .grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; margin-bottom:18px; }
     .metric strong { display:block; font-size:1.9rem; color:var(--deep); }
     label { display:grid; gap:6px; font-weight:800; margin-bottom:12px; }
-    input { min-height:44px; border:1px solid var(--line); border-radius:var(--radius); padding:0 12px; }
-    button, .btn { min-height:42px; border:0; border-radius:var(--radius); padding:0 13px; font-weight:900; cursor:pointer; }
+    input, select { min-height:42px; border:1px solid var(--line); border-radius:var(--radius); padding:0 12px; background:white; }
+    button, .btn { min-height:40px; border:0; border-radius:var(--radius); padding:0 12px; font-weight:900; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; text-decoration:none; }
     .primary { background:var(--deep); color:white; }
     .teal { background:#baf4ee; color:#042a2d; }
-    .danger { background:#c65d5d; color:white; }
-    .actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
+    .danger { background:var(--danger); color:white; }
+    .ghost { background:#f7fbfb; color:#314447; border:1px solid var(--line); }
+    .actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
     .hidden { display:none !important; }
+    .tabs { display:flex; gap:8px; overflow-x:auto; margin-bottom:16px; }
+    .tabs button { background:white; border:1px solid var(--line); color:#314447; white-space:nowrap; }
+    .tabs button.active { background:var(--deep); color:white; }
+    .panel { display:none; }
+    .panel.active { display:block; }
     table { width:100%; border-collapse:collapse; background:white; border:1px solid var(--line); border-radius:var(--radius); overflow:hidden; }
     th, td { padding:11px; border-bottom:1px solid var(--line); text-align:left; vertical-align:top; font-size:.92rem; }
     th { background:#f7fbfb; color:#314447; }
-    .tag { display:inline-flex; padding:4px 7px; border-radius:999px; background:var(--soft); font-size:.78rem; font-weight:900; }
+    .tag { display:inline-flex; padding:4px 7px; border-radius:999px; background:var(--soft); font-size:.78rem; font-weight:900; margin:2px; }
     .ok { background:#dff8f4; color:#064d50; }
     .bad { background:#ffe2e2; color:#7c2525; }
-    @media (max-width:760px) { header { flex-direction:column; } .grid { grid-template-columns:1fr 1fr; } table { display:block; overflow-x:auto; } }
+    .warn { background:#fff2c9; color:#6f4b00; }
+    .toolbar { display:flex; flex-wrap:wrap; gap:10px; justify-content:space-between; align-items:center; margin-bottom:12px; }
+    .toolbar input { width:min(380px,100%); }
+    .event-list { display:grid; gap:8px; }
+    .event { display:grid; grid-template-columns:140px 1fr; gap:10px; padding:10px; border:1px solid var(--line); border-radius:var(--radius); background:#fbfdfd; }
+    .muted { color:var(--muted); }
+    @media (max-width:820px) { header { flex-direction:column; } .grid { grid-template-columns:1fr 1fr; } table { display:block; overflow-x:auto; } .event { grid-template-columns:1fr; } }
   </style>
 </head>
 <body>
   <main>
     <header>
       <div>
-        <h1>Admin Freela'B Hub</h1>
-        <p>Controle operacional para validar perfis, bloquear abusos, acompanhar pagamentos e preparar o marketplace para venda.</p>
+        <h1>Central Admin Freela'B Hub</h1>
+        <p>Login administrativo separado do app. Aqui voce acompanha usuarios, anuncios, conversas, pagamentos e eventos das paginas.</p>
       </div>
-      <a class="btn teal" href="index.html">Voltar ao app</a>
+      <a class="btn teal" href="index.html">Abrir app</a>
     </header>
 
-    <section class="box" id="loginBox">
-      <h2>Entrar como admin</h2>
+    <section class="box login" id="loginBox">
+      <h2>Acesso administrativo</h2>
+      <p>Use somente para gestao. Esse login nao entra como clinica nem freelancer.</p>
       <form id="adminLogin">
         <label>E-mail
           <input id="adminEmail" type="email" value="admin@freelabhub.com" required>
         </label>
         <label>Senha
-          <input id="adminPassword" type="password" value="admin123456" required>
+          <input id="adminPassword" type="password" placeholder="Senha do admin" required>
         </label>
-        <button class="primary" type="submit">Entrar</button>
+        <button class="primary" type="submit">Entrar no controle</button>
       </form>
       <p id="loginMessage"></p>
     </section>
 
     <section id="adminPanel" class="hidden">
       <div class="grid" id="metrics"></div>
-      <div class="box">
-        <h2>Usuários cadastrados</h2>
-        <div id="usersTable"></div>
-      </div>
-      <div class="box" style="margin-top:16px;">
-        <h2>Pagamentos e auditoria</h2>
-        <div id="payments"></div>
-      </div>
+      <nav class="tabs" id="tabs">
+        <button class="active" data-panel="overview">Visao geral</button>
+        <button data-panel="users">Usuarios</button>
+        <button data-panel="ads">Anuncios</button>
+        <button data-panel="threads">Mensagens</button>
+        <button data-panel="payments">Pagamentos</button>
+        <button data-panel="audit">Auditoria</button>
+      </nav>
+
+      <section class="panel active" id="overview">
+        <div class="box">
+          <h2>Resumo operacional</h2>
+          <div id="overviewContent"></div>
+        </div>
+      </section>
+
+      <section class="panel" id="users">
+        <div class="box">
+          <div class="toolbar">
+            <h2>Usuarios cadastrados</h2>
+            <input id="userSearch" placeholder="Buscar por nome, e-mail, cidade ou pais">
+          </div>
+          <div id="usersTable"></div>
+        </div>
+      </section>
+
+      <section class="panel" id="ads">
+        <div class="box">
+          <h2>Anuncios e classificados</h2>
+          <div id="adsTable"></div>
+        </div>
+      </section>
+
+      <section class="panel" id="threads">
+        <div class="box">
+          <h2>Mensagens internas</h2>
+          <div id="threadsTable"></div>
+        </div>
+      </section>
+
+      <section class="panel" id="payments">
+        <div class="box">
+          <h2>Pagamentos</h2>
+          <div id="paymentsTable"></div>
+        </div>
+      </section>
+
+      <section class="panel" id="audit">
+        <div class="box">
+          <h2>Eventos das paginas</h2>
+          <div class="event-list" id="auditList"></div>
+        </div>
+      </section>
     </section>
   </main>
 
   <script>
+    let snapshot = { users: [], classifieds: [], threads: [], payments: [], auditLog: [], metrics: {} };
+
     async function api(path, options = {}) {
       const response = await fetch(path, {
         credentials: "include",
@@ -81,39 +142,141 @@
       return data;
     }
 
-    function tag(text, ok = true) {
-      return `<span class="tag ${ok ? "ok" : "bad"}">${text}</span>`;
+    function fmtTime(value) {
+      if (!value) return "-";
+      return new Date(value * 1000).toLocaleString("pt-BR");
+    }
+
+    function tag(text, type = "ok") {
+      return `<span class="tag ${type}">${text}</span>`;
+    }
+
+    function userName(id) {
+      const user = snapshot.users.find(item => item.id === id);
+      return user ? `${user.name} (${user.email})` : id;
+    }
+
+    function currentUsers() {
+      const q = (document.querySelector("#userSearch")?.value || "").toLowerCase();
+      return snapshot.users.filter(user => !q || [user.id, user.name, user.email, user.city, user.country, user.role].join(" ").toLowerCase().includes(q));
     }
 
     async function loadAdmin() {
-      const data = await api("/api/admin/summary");
+      snapshot = await api("/api/admin/summary");
       document.querySelector("#loginBox").classList.add("hidden");
       document.querySelector("#adminPanel").classList.remove("hidden");
-      const metrics = data.metrics || {};
+      renderAll();
+    }
+
+    function renderAll() {
+      renderMetrics();
+      renderOverview();
+      renderUsers();
+      renderAds();
+      renderThreads();
+      renderPayments();
+      renderAudit();
+    }
+
+    function renderMetrics() {
+      const m = snapshot.metrics || {};
       document.querySelector("#metrics").innerHTML = `
-        <div class="card metric"><strong>${metrics.users || 0}</strong><span>usuários</span></div>
-        <div class="card metric"><strong>${metrics.labs || 0}</strong><span>clínicas/labs</span></div>
-        <div class="card metric"><strong>${metrics.freelancers || 0}</strong><span>freelancers</span></div>
-        <div class="card metric"><strong>${metrics.blocked || 0}</strong><span>bloqueados</span></div>`;
+        <div class="card metric"><strong>${m.users || 0}</strong><span>usuarios</span></div>
+        <div class="card metric"><strong>${m.labs || 0}</strong><span>clinicas/labs</span></div>
+        <div class="card metric"><strong>${m.freelancers || 0}</strong><span>freelancers</span></div>
+        <div class="card metric"><strong>${m.threads || 0}</strong><span>conversas</span></div>`;
+    }
+
+    function renderOverview() {
+      const m = snapshot.metrics || {};
+      const pending = snapshot.users.filter(user => !user.verified).length;
+      const blocked = snapshot.users.filter(user => user.blocked).length;
+      document.querySelector("#overviewContent").innerHTML = `
+        <p>${tag(`${pending} pendente(s)`, pending ? "warn" : "ok")} ${tag(`${blocked} bloqueado(s)`, blocked ? "bad" : "ok")} ${tag(`${m.payments || 0} pagamento(s)`)}</p>
+        <p>O painel administrativo tem controle separado do login comum. Usuarios bloqueados deixam de entrar no app e somem do marketplace publico.</p>
+        <div class="actions">
+          <button class="ghost" type="button" data-refresh>Atualizar dados</button>
+          <a class="btn teal" href="index.html" target="_blank">Ver app publico</a>
+        </div>`;
+    }
+
+    function renderUsers() {
       document.querySelector("#usersTable").innerHTML = `
         <table>
-          <thead><tr><th>Perfil</th><th>Localização</th><th>Status</th><th>Ações</th></tr></thead>
-          <tbody>${(data.users || []).map(user => `
+          <thead><tr><th>Perfil</th><th>Localizacao</th><th>Status</th><th>Controle</th></tr></thead>
+          <tbody>${currentUsers().map(user => `
             <tr>
-              <td><strong>${user.name}</strong><br>${user.email}<br>${user.role === "lab" ? "Clínica/lab" : "Freelancer"}</td>
-              <td>${user.address || ""}<br>${user.city || ""}, ${user.country || ""}<br>${user.phone || ""}</td>
-              <td>${tag(user.verified ? "Verificado" : "Pendente", user.verified)} ${tag(user.blocked ? "Bloqueado" : "Ativo", !user.blocked)}</td>
+              <td><strong>${user.name}</strong><br>${user.email}<br>${user.role === "lab" ? "Clinica/lab" : "Freelancer"}</td>
+              <td>${user.address || ""}<br>${user.city || ""}, ${user.country || ""}<br>${user.countryCode || ""} ${user.phone || ""}</td>
+              <td>${tag(user.verified ? "Verificado" : "Pendente", user.verified ? "ok" : "warn")} ${tag(user.blocked ? "Bloqueado" : "Ativo", user.blocked ? "bad" : "ok")}</td>
               <td>
                 <div class="actions">
-                  <button class="teal" data-action="verify" data-id="${user.id}">Verificar</button>
-                  <button class="danger" data-action="block" data-id="${user.id}">${user.blocked ? "Desbloquear" : "Bloquear"}</button>
+                  <button class="teal" data-user-action="verify" data-id="${user.id}">Verificar</button>
+                  <button class="danger" data-user-action="block" data-id="${user.id}">${user.blocked ? "Desbloquear" : "Bloquear"}</button>
+                  <button class="ghost" data-user-action="role" data-role="${user.role === "lab" ? "freelancer" : "lab"}" data-id="${user.id}">Virar ${user.role === "lab" ? "freelancer" : "lab"}</button>
+                  <button class="danger" data-user-action="delete" data-id="${user.id}">Excluir</button>
                 </div>
               </td>
             </tr>`).join("")}</tbody>
         </table>`;
-      document.querySelector("#payments").innerHTML = `
-        <p><strong>${(data.payments || []).length}</strong> tentativa(s) de pagamento registradas.</p>
-        <p><strong>${(data.auditLog || []).length}</strong> evento(s) recentes de auditoria.</p>`;
+    }
+
+    function renderAds() {
+      const ads = snapshot.users.filter(user => user.adTitle).map(user => ({ kind: "perfil", owner: user.name, id: user.id, title: user.adTitle, city: user.city, text: user.adDescription || user.bio || "" }));
+      const classifieds = snapshot.classifieds.map(item => ({ kind: "classified", owner: userName(item.ownerId || ""), id: item.id, title: item.title, city: item.city, text: item.description || "" }));
+      document.querySelector("#adsTable").innerHTML = `
+        <table>
+          <thead><tr><th>Tipo</th><th>Anuncio</th><th>Local</th><th>Controle</th></tr></thead>
+          <tbody>${[...ads, ...classifieds].map(item => `
+            <tr>
+              <td>${tag(item.kind === "classified" ? "Classificado" : "Perfil")}</td>
+              <td><strong>${item.title || "Sem titulo"}</strong><br>${item.owner}<br><span class="muted">${item.text}</span></td>
+              <td>${item.city || "-"}</td>
+              <td>${item.kind === "classified" ? `<button class="danger" data-content-kind="classified" data-id="${item.id}">Remover</button>` : `<button class="ghost" data-open-user="${item.id}">Ver usuario</button>`}</td>
+            </tr>`).join("") || `<tr><td colspan="4">Nenhum anuncio ainda.</td></tr>`}</tbody>
+        </table>`;
+    }
+
+    function renderThreads() {
+      document.querySelector("#threadsTable").innerHTML = `
+        <table>
+          <thead><tr><th>Conversa</th><th>Participantes</th><th>Mensagens</th><th>Controle</th></tr></thead>
+          <tbody>${snapshot.threads.map(thread => `
+            <tr>
+              <td>${thread.classifiedId ? tag("Classificado", "warn") : tag("Marketplace")}</td>
+              <td>${(thread.participants || []).map(userName).join("<br>")}</td>
+              <td>${(thread.messages || []).length} mensagem(ns)<br><span class="muted">${((thread.messages || []).slice(-1)[0] || {}).text || ""}</span></td>
+              <td><button class="danger" data-content-kind="thread" data-id="${thread.id}">Excluir conversa</button></td>
+            </tr>`).join("") || `<tr><td colspan="4">Nenhuma conversa ainda.</td></tr>`}</tbody>
+        </table>`;
+    }
+
+    function renderPayments() {
+      document.querySelector("#paymentsTable").innerHTML = `
+        <table>
+          <thead><tr><th>Data</th><th>Usuario</th><th>Plano</th><th>Status</th><th>Controle</th></tr></thead>
+          <tbody>${snapshot.payments.map(payment => `
+            <tr>
+              <td>${fmtTime(payment.at)}</td>
+              <td>${payment.email || "-"}</td>
+              <td>${payment.plan || "-"}</td>
+              <td>${tag(payment.status || "pendente", payment.status === "paid" ? "ok" : "warn")}</td>
+              <td>
+                <div class="actions">
+                  <button class="teal" data-payment-status="paid" data-id="${payment.id}">Marcar pago</button>
+                  <button class="danger" data-payment-status="cancelled" data-id="${payment.id}">Cancelar</button>
+                </div>
+              </td>
+            </tr>`).join("") || `<tr><td colspan="5">Nenhum pagamento registrado.</td></tr>`}</tbody>
+        </table>`;
+    }
+
+    function renderAudit() {
+      document.querySelector("#auditList").innerHTML = (snapshot.auditLog || []).slice().reverse().map(item => `
+        <div class="event">
+          <strong>${fmtTime(item.at)}</strong>
+          <div><strong>${item.type}</strong><br><span class="muted">${[item.email, item.page, item.action, item.kind, item.plan, item.id].filter(Boolean).join(" | ")}</span></div>
+        </div>`).join("") || `<p>Nenhum evento registrado.</p>`;
     }
 
     document.querySelector("#adminLogin").addEventListener("submit", async event => {
@@ -125,21 +288,54 @@
         });
         await loadAdmin();
       } catch {
-        loginMessage.textContent = "Login de admin inválido.";
+        loginMessage.textContent = "Login de admin invalido.";
       }
     });
 
-    document.addEventListener("click", async event => {
-      const button = event.target.closest("[data-action]");
+    document.querySelector("#tabs").addEventListener("click", event => {
+      const button = event.target.closest("[data-panel]");
       if (!button) return;
-      const row = button.closest("tr");
-      const isBlock = button.dataset.action === "block";
-      const blocked = isBlock ? !row.innerText.includes("Bloqueado") : undefined;
-      await api("/api/admin/user", {
-        method: "POST",
-        body: JSON.stringify(isBlock ? { id: button.dataset.id, blocked } : { id: button.dataset.id, verified: true })
-      });
-      await loadAdmin();
+      document.querySelectorAll("#tabs button").forEach(item => item.classList.toggle("active", item === button));
+      document.querySelectorAll(".panel").forEach(panel => panel.classList.toggle("active", panel.id === button.dataset.panel));
+    });
+
+    document.addEventListener("input", event => {
+      if (event.target.id === "userSearch") renderUsers();
+    });
+
+    document.addEventListener("click", async event => {
+      if (event.target.closest("[data-refresh]")) return loadAdmin();
+      const userButton = event.target.closest("[data-user-action]");
+      if (userButton) {
+        const action = userButton.dataset.userAction;
+        const row = userButton.closest("tr");
+        const payload = { id: userButton.dataset.id };
+        if (action === "verify") payload.verified = true;
+        if (action === "block") payload.blocked = !row.innerText.includes("Bloqueado");
+        if (action === "role") payload.role = userButton.dataset.role;
+        if (action === "delete") {
+          if (!confirm("Excluir este usuario e suas conversas?")) return;
+          payload.delete = true;
+        }
+        await api("/api/admin/user", { method: "POST", body: JSON.stringify(payload) });
+        await loadAdmin();
+      }
+      const contentButton = event.target.closest("[data-content-kind]");
+      if (contentButton) {
+        await api("/api/admin/content", { method: "POST", body: JSON.stringify({ kind: contentButton.dataset.contentKind, id: contentButton.dataset.id }) });
+        await loadAdmin();
+      }
+      const paymentButton = event.target.closest("[data-payment-status]");
+      if (paymentButton) {
+        await api("/api/admin/content", { method: "POST", body: JSON.stringify({ kind: "payment", id: paymentButton.dataset.id, status: paymentButton.dataset.paymentStatus }) });
+        await loadAdmin();
+      }
+      const openUser = event.target.closest("[data-open-user]");
+      if (openUser) {
+        document.querySelector('[data-panel="users"]').click();
+        userSearch.value = openUser.dataset.openUser;
+        renderUsers();
+      }
     });
 
     loadAdmin().catch(() => {});

@@ -149,6 +149,11 @@ def save_state(data):
     write_json(DB_PATH, data)
 
 
+def audit(data, event_type, **extra):
+    data.setdefault("auditLog", []).append({"at": now(), "type": event_type, **extra})
+    data["auditLog"] = data["auditLog"][-500:]
+
+
 def merge_users(existing, incoming):
     by_key = {}
     for user in existing:
@@ -286,6 +291,7 @@ class Handler(SimpleHTTPRequestHandler):
             return self.send_json({
                 "users": users,
                 "classifieds": data.get("classifieds", []),
+                "threads": data.get("threads", []),
                 "payments": data.get("payments", []),
                 "auditLog": data.get("auditLog", [])[-100:],
                 "metrics": {
@@ -293,6 +299,9 @@ class Handler(SimpleHTTPRequestHandler):
                     "labs": len([u for u in users if u.get("role") == "lab"]),
                     "freelancers": len([u for u in users if u.get("role") == "freelancer"]),
                     "blocked": len([u for u in users if u.get("blocked")]),
+                    "classifieds": len(data.get("classifieds", [])),
+                    "threads": len(data.get("threads", [])),
+                    "payments": len(data.get("payments", [])),
                 },
             })
         return super().do_GET()
@@ -306,11 +315,14 @@ class Handler(SimpleHTTPRequestHandler):
                 data = state()
                 user = next((u for u in data.get("users", []) if u.get("email", "").lower() == email), None)
                 if not user or user.get("blocked") or not password_ok(body.get("password", ""), user.get("passwordHash")):
+                    audit(data, "login_failed", email=email)
+                    save_state(data)
                     return self.send_json({"error": "invalid_login"}, HTTPStatus.UNAUTHORIZED)
                 if not user.get("verified"):
                     return self.send_json({"error": "email_not_verified"}, HTTPStatus.FORBIDDEN)
                 token = create_session(email)
                 data["sessionEmail"] = email
+                audit(data, "login", email=email)
                 save_state(data)
                 cookie = f"freelab_session={token}; Path=/; HttpOnly; SameSite=Lax; Max-Age={SESSION_TTL}"
                 return self.send_json({"state": public_state(data, email), "user": public_user(user)}, cookie=cookie)
@@ -344,7 +356,7 @@ class Handler(SimpleHTTPRequestHandler):
                     "album": [],
                 }
                 data.setdefault("users", []).append(user)
-                data.setdefault("auditLog", []).append({"at": now(), "type": "register", "email": email})
+                audit(data, "register", email=email)
                 save_state(data)
                 return self.send_json({"user": public_user(user), "state": public_state(data)})
             if parsed.path == "/api/verify-email":
@@ -356,6 +368,7 @@ class Handler(SimpleHTTPRequestHandler):
                 user["verified"] = True
                 token = create_session(user["email"])
                 data["sessionEmail"] = user["email"]
+                audit(data, "verify_email", email=user["email"])
                 save_state(data)
                 cookie = f"freelab_session={token}; Path=/; HttpOnly; SameSite=Lax; Max-Age={SESSION_TTL}"
                 return self.send_json({"state": public_state(data, user["email"])}, cookie=cookie)
@@ -372,6 +385,7 @@ class Handler(SimpleHTTPRequestHandler):
                     if key in incoming:
                         data[key] = incoming[key]
                 data["sessionEmail"] = current["email"]
+                audit(data, "state_save", email=current["email"])
                 save_state(data)
                 return self.send_json({"ok": True, "state": public_state(data, current["email"])})
             if parsed.path == "/api/geocode":
@@ -390,10 +404,23 @@ class Handler(SimpleHTTPRequestHandler):
                 env_key = "STRIPE_PAYMENT_LINK_LAB" if plan == "lab" else "STRIPE_PAYMENT_LINK_FREELANCER"
                 payment_url = os.environ.get(env_key, "")
                 data = state()
-                data.setdefault("payments", []).append({"at": now(), "email": current["email"], "plan": plan, "status": "pending_gateway"})
+                data.setdefault("payments", []).append({"id": secrets.token_urlsafe(10), "at": now(), "email": current["email"], "plan": plan, "status": "pending_gateway"})
+                audit(data, "checkout_attempt", email=current["email"], plan=plan)
                 save_state(data)
                 return self.send_json({"paymentUrl": payment_url, "status": "needs_gateway_key" if not payment_url else "ready"})
+            if parsed.path == "/api/audit":
+                body = self.json_body()
+                current = self.current_session()
+                data = state()
+                audit(data, "page_event", email=(current or {}).get("email", ""), page=body.get("page", ""), action=body.get("action", "view"))
+                save_state(data)
+                return self.send_json({"ok": True})
             if parsed.path == "/api/logout":
+                current = self.current_session()
+                if current:
+                    data = state()
+                    audit(data, "logout", email=current.get("email", ""))
+                    save_state(data)
                 cookie = "freelab_session=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0"
                 return self.send_json({"ok": True}, cookie=cookie)
             if parsed.path == "/api/admin/login":
@@ -401,6 +428,9 @@ class Handler(SimpleHTTPRequestHandler):
                 if body.get("email", "").lower() != ADMIN_EMAIL or body.get("password", "") != ADMIN_PASSWORD:
                     return self.send_json({"error": "invalid_admin"}, HTTPStatus.UNAUTHORIZED)
                 token = create_session(ADMIN_EMAIL, "admin")
+                data = state()
+                audit(data, "admin_login", email=ADMIN_EMAIL)
+                save_state(data)
                 cookie = f"freelab_admin={token}; Path=/; HttpOnly; SameSite=Lax; Max-Age={SESSION_TTL}"
                 return self.send_json({"ok": True}, cookie=cookie)
             if parsed.path == "/api/admin/user":
@@ -411,13 +441,41 @@ class Handler(SimpleHTTPRequestHandler):
                 user = next((u for u in data.get("users", []) if u.get("id") == body.get("id")), None)
                 if not user:
                     return self.send_json({"error": "not_found"}, HTTPStatus.NOT_FOUND)
+                if body.get("delete"):
+                    data["users"] = [item for item in data.get("users", []) if item.get("id") != user.get("id")]
+                    data["threads"] = [thread for thread in data.get("threads", []) if user.get("id") not in thread.get("participants", [])]
+                    audit(data, "admin_user_delete", id=user["id"], email=user["email"])
+                    save_state(data)
+                    return self.send_json({"ok": True})
                 if "verified" in body:
                     user["verified"] = bool(body["verified"])
                 if "blocked" in body:
                     user["blocked"] = bool(body["blocked"])
-                data.setdefault("auditLog", []).append({"at": now(), "type": "admin_user_update", "id": user["id"], "email": user["email"]})
+                if "role" in body:
+                    user["role"] = body["role"]
+                audit(data, "admin_user_update", id=user["id"], email=user["email"])
                 save_state(data)
                 return self.send_json({"user": public_user(user)})
+            if parsed.path == "/api/admin/content":
+                if not self.current_admin():
+                    return self.send_json({"error": "admin_required"}, HTTPStatus.UNAUTHORIZED)
+                body = self.json_body()
+                data = state()
+                kind = body.get("kind")
+                item_id = body.get("id")
+                if kind == "classified":
+                    data["classifieds"] = [item for item in data.get("classifieds", []) if item.get("id") != item_id]
+                elif kind == "thread":
+                    data["threads"] = [item for item in data.get("threads", []) if item.get("id") != item_id]
+                elif kind == "payment":
+                    for payment in data.get("payments", []):
+                        if payment.get("id") == item_id:
+                            payment["status"] = body.get("status", payment.get("status"))
+                else:
+                    return self.send_json({"error": "invalid_kind"}, HTTPStatus.BAD_REQUEST)
+                audit(data, "admin_content_update", kind=kind, id=item_id)
+                save_state(data)
+                return self.send_json({"ok": True})
         except json.JSONDecodeError:
             return self.send_json({"error": "invalid_json"}, HTTPStatus.BAD_REQUEST)
         except Exception as exc:
