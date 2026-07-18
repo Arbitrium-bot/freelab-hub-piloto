@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Admin - Freela'B Hub</title>
+  <style>
+    :root { --deep:#062f34; --teal:#00a7ad; --line:#dfe7e7; --muted:#657476; --soft:#f4f8f8; --radius:8px; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif; color:#122527; background:#eef5f5; }
+    main { max-width:1180px; margin:0 auto; padding:28px 16px 48px; }
+    header { display:flex; justify-content:space-between; gap:16px; align-items:flex-start; margin-bottom:22px; }
+    h1, h2, h3, p { margin-top:0; }
+    p { color:var(--muted); line-height:1.5; }
+    .box, .card { background:white; border:1px solid var(--line); border-radius:var(--radius); padding:18px; box-shadow:0 18px 48px rgba(6,47,52,.08); }
+    .grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; margin-bottom:18px; }
+    .metric strong { display:block; font-size:1.9rem; color:var(--deep); }
+    label { display:grid; gap:6px; font-weight:800; margin-bottom:12px; }
+    input { min-height:44px; border:1px solid var(--line); border-radius:var(--radius); padding:0 12px; }
+    button, .btn { min-height:42px; border:0; border-radius:var(--radius); padding:0 13px; font-weight:900; cursor:pointer; }
+    .primary { background:var(--deep); color:white; }
+    .teal { background:#baf4ee; color:#042a2d; }
+    .danger { background:#c65d5d; color:white; }
+    .actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
+    .hidden { display:none !important; }
+    table { width:100%; border-collapse:collapse; background:white; border:1px solid var(--line); border-radius:var(--radius); overflow:hidden; }
+    th, td { padding:11px; border-bottom:1px solid var(--line); text-align:left; vertical-align:top; font-size:.92rem; }
+    th { background:#f7fbfb; color:#314447; }
+    .tag { display:inline-flex; padding:4px 7px; border-radius:999px; background:var(--soft); font-size:.78rem; font-weight:900; }
+    .ok { background:#dff8f4; color:#064d50; }
+    .bad { background:#ffe2e2; color:#7c2525; }
+    @media (max-width:760px) { header { flex-direction:column; } .grid { grid-template-columns:1fr 1fr; } table { display:block; overflow-x:auto; } }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div>
+        <h1>Admin Freela'B Hub</h1>
+        <p>Controle operacional para validar perfis, bloquear abusos, acompanhar pagamentos e preparar o marketplace para venda.</p>
+      </div>
+      <a class="btn teal" href="index.html">Voltar ao app</a>
+    </header>
+
+    <section class="box" id="loginBox">
+      <h2>Entrar como admin</h2>
+      <form id="adminLogin">
+        <label>E-mail
+          <input id="adminEmail" type="email" value="admin@freelabhub.com" required>
+        </label>
+        <label>Senha
+          <input id="adminPassword" type="password" value="admin123456" required>
+        </label>
+        <button class="primary" type="submit">Entrar</button>
+      </form>
+      <p id="loginMessage"></p>
+    </section>
+
+    <section id="adminPanel" class="hidden">
+      <div class="grid" id="metrics"></div>
+      <div class="box">
+        <h2>Usuários cadastrados</h2>
+        <div id="usersTable"></div>
+      </div>
+      <div class="box" style="margin-top:16px;">
+        <h2>Pagamentos e auditoria</h2>
+        <div id="payments"></div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    async function api(path, options = {}) {
+      const response = await fetch(path, {
+        credentials: "include",
+        headers: { "Content-Type": "application/json", ...(options.headers || {}) },
+        ...options
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw data;
+      return data;
+    }
+
+    function tag(text, ok = true) {
+      return `<span class="tag ${ok ? "ok" : "bad"}">${text}</span>`;
+    }
+
+    async function loadAdmin() {
+      const data = await api("/api/admin/summary");
+      document.querySelector("#loginBox").classList.add("hidden");
+      document.querySelector("#adminPanel").classList.remove("hidden");
+      const metrics = data.metrics || {};
+      document.querySelector("#metrics").innerHTML = `
+        <div class="card metric"><strong>${metrics.users || 0}</strong><span>usuários</span></div>
+        <div class="card metric"><strong>${metrics.labs || 0}</strong><span>clínicas/labs</span></div>
+        <div class="card metric"><strong>${metrics.freelancers || 0}</strong><span>freelancers</span></div>
+        <div class="card metric"><strong>${metrics.blocked || 0}</strong><span>bloqueados</span></div>`;
+      document.querySelector("#usersTable").innerHTML = `
+        <table>
+          <thead><tr><th>Perfil</th><th>Localização</th><th>Status</th><th>Ações</th></tr></thead>
+          <tbody>${(data.users || []).map(user => `
+            <tr>
+              <td><strong>${user.name}</strong><br>${user.email}<br>${user.role === "lab" ? "Clínica/lab" : "Freelancer"}</td>
+              <td>${user.address || ""}<br>${user.city || ""}, ${user.country || ""}<br>${user.phone || ""}</td>
+              <td>${tag(user.verified ? "Verificado" : "Pendente", user.verified)} ${tag(user.blocked ? "Bloqueado" : "Ativo", !user.blocked)}</td>
+              <td>
+                <div class="actions">
+                  <button class="teal" data-action="verify" data-id="${user.id}">Verificar</button>
+                  <button class="danger" data-action="block" data-id="${user.id}">${user.blocked ? "Desbloquear" : "Bloquear"}</button>
+                </div>
+              </td>
+            </tr>`).join("")}</tbody>
+        </table>`;
+      document.querySelector("#payments").innerHTML = `
+        <p><strong>${(data.payments || []).length}</strong> tentativa(s) de pagamento registradas.</p>
+        <p><strong>${(data.auditLog || []).length}</strong> evento(s) recentes de auditoria.</p>`;
+    }
+
+    document.querySelector("#adminLogin").addEventListener("submit", async event => {
+      event.preventDefault();
+      try {
+        await api("/api/admin/login", {
+          method: "POST",
+          body: JSON.stringify({ email: adminEmail.value, password: adminPassword.value })
+        });
+        await loadAdmin();
+      } catch {
+        loginMessage.textContent = "Login de admin inválido.";
+      }
+    });
+
+    document.addEventListener("click", async event => {
+      const button = event.target.closest("[data-action]");
+      if (!button) return;
+      const row = button.closest("tr");
+      const isBlock = button.dataset.action === "block";
+      const blocked = isBlock ? !row.innerText.includes("Bloqueado") : undefined;
+      await api("/api/admin/user", {
+        method: "POST",
+        body: JSON.stringify(isBlock ? { id: button.dataset.id, blocked } : { id: button.dataset.id, verified: true })
+      });
+      await loadAdmin();
+    });
+
+    loadAdmin().catch(() => {});
+  </script>
+</body>
+</html>

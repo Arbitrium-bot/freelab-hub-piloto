@@ -1572,7 +1572,7 @@
               <span class="chip">Destaque para urgências</span>
             </div>
             <div class="actions">
-              <button class="btn primary" type="button">Ativar plano laboratório</button>
+              <button class="btn primary" type="button" data-checkout="lab">Ativar plano laboratório</button>
             </div>
           </div>
           <div class="box plan-card" data-plan-role="freelancer">
@@ -1586,7 +1586,7 @@
               <span class="chip">Prioridade na busca</span>
             </div>
             <div class="actions">
-              <button class="btn primary" type="button">Ativar plano freelancer</button>
+              <button class="btn primary" type="button" data-checkout="freelancer">Ativar plano freelancer</button>
             </div>
           </div>
         </div>
@@ -1719,8 +1719,10 @@
       externalConnections: []
     };
 
-    const state = load();
+    let state = load();
     const albumBuffer = [];
+    let backendOnline = false;
+    let saveTimer = null;
 
     function $(selector) { return document.querySelector(selector); }
     function $all(selector) { return [...document.querySelectorAll(selector)]; }
@@ -1762,6 +1764,44 @@
 
     function save() {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      saveToBackend();
+    }
+
+    async function api(path, options = {}) {
+      const response = await fetch(path, {
+        credentials: "include",
+        headers: { "Content-Type": "application/json", ...(options.headers || {}) },
+        ...options
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw data;
+      return data;
+    }
+
+    function replaceState(nextState) {
+      state = { ...structuredClone(defaults), ...nextState };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }
+
+    function saveToBackend() {
+      if (!backendOnline || saveTimer) return;
+      saveTimer = setTimeout(async () => {
+        saveTimer = null;
+        try { await api("/api/state", { method: "POST", body: JSON.stringify({ state }) }); }
+        catch { backendOnline = false; }
+      }, 350);
+    }
+
+    async function syncFromBackend() {
+      try {
+        const data = await api("/api/state");
+        backendOnline = true;
+        replaceState(data.state);
+        applyLanguage(state.language || "pt");
+        boot();
+      } catch {
+        backendOnline = false;
+      }
     }
 
     function currentUser() {
@@ -1794,6 +1834,7 @@
     }
 
     function mapPosition(user, index = 0) {
+      if (user.lat && user.lng) return { lat: Number(user.lat), lng: Number(user.lng), country: user.country };
       const base = countryFor(user.country);
       const offset = ((index % 5) - 2) * .65;
       return {
@@ -1813,6 +1854,20 @@
       const x = (lng + 180) / 360 * 100;
       const y = (0.5 - Math.log((1 + sin) / (1 - sin)) / (4 * Math.PI)) * 100;
       return { x: Math.max(0, Math.min(100, x)), y: Math.max(0, Math.min(100, y)) };
+    }
+
+    async function geocodeUser(user) {
+      if (!backendOnline) return;
+      try {
+        const data = await api("/api/geocode", {
+          method: "POST",
+          body: JSON.stringify({ address: user.address, city: user.city, country: user.country })
+        });
+        if (data.location) {
+          user.lat = data.location.lat;
+          user.lng = data.location.lng;
+        }
+      } catch {}
     }
 
     function toast(message) {
@@ -2310,9 +2365,20 @@
       });
     });
 
-    $("#loginForm").addEventListener("submit", event => {
+    $("#loginForm").addEventListener("submit", async event => {
       event.preventDefault();
-      const user = state.users.find(item => item.email === $("#loginEmail").value.trim() && item.password === $("#loginPassword").value);
+      const email = $("#loginEmail").value.trim();
+      const password = $("#loginPassword").value;
+      try {
+        const data = await api("/api/login", { method: "POST", body: JSON.stringify({ email, password }) });
+        backendOnline = true;
+        replaceState(data.state);
+        showApp();
+        return;
+      } catch (error) {
+        if (location.protocol !== "file:" && error?.error && error.error !== "invalid_login") toast("Backend indisponível ou e-mail pendente. Usando modo local se possível.");
+      }
+      const user = state.users.find(item => item.email === email && item.password === password);
       if (!user) return toast("E-mail ou senha incorretos.");
       if (!user.verified) {
         $("#emailConfirmBox").classList.remove("hidden");
@@ -2331,7 +2397,7 @@
       showApp();
     });
 
-    $("#registerForm").addEventListener("submit", event => {
+    $("#registerForm").addEventListener("submit", async event => {
       event.preventDefault();
       if ($("#registerPassword").value !== $("#registerPasswordConfirm").value) return toast("As senhas não conferem.");
       const email = $("#registerEmail").value.trim();
@@ -2358,11 +2424,30 @@
         adDescription: "",
         album: []
       };
-      state.users.push(user);
+      try {
+        const data = await api("/api/register", { method: "POST", body: JSON.stringify(user) });
+        backendOnline = true;
+        replaceState(data.state);
+        Object.assign(user, data.user);
+      } catch {
+        backendOnline = false;
+      }
+      if (!state.users.some(item => item.email === user.email)) state.users.push(user);
       save();
       $("#emailConfirmBox").classList.remove("hidden");
       $("#emailConfirmText").textContent = `Confirme o cadastro enviado para ${user.email}.`;
-      $("#confirmEmailButton").onclick = () => { user.verified = true; state.sessionEmail = user.email; save(); showApp(); };
+      $("#confirmEmailButton").onclick = async () => {
+        if (backendOnline) {
+          try {
+            const data = await api("/api/verify-email", { method: "POST", body: JSON.stringify({ email: user.email }) });
+            replaceState(data.state);
+            showApp();
+            return;
+          } catch {}
+        }
+        await geocodeUser(user);
+        user.verified = true; state.sessionEmail = user.email; save(); showApp();
+      };
       toast("Cadastro criado. Confirme o e-mail para entrar.");
     });
 
@@ -2383,7 +2468,12 @@
       $("#loginPassword").value = "123456";
     });
 
-    $("#logoutButton").addEventListener("click", () => showAuth());
+    $("#logoutButton").addEventListener("click", async () => {
+      try { await api("/api/logout", { method: "POST", body: "{}" }); } catch {}
+      state.sessionEmail = "";
+      save();
+      showAuth();
+    });
 
     $all("[data-lang]").forEach(button => {
       button.addEventListener("click", () => setLanguage(button.dataset.lang));
@@ -2421,6 +2511,12 @@
       if (trustReport) toast("Denúncia registrada para análise da moderação.");
       const trustBlock = event.target.closest("[data-trust-block]");
       if (trustBlock) toast("Usuário bloqueado neste piloto.");
+      const checkout = event.target.closest("[data-checkout]");
+      if (checkout) {
+        api("/api/checkout", { method: "POST", body: JSON.stringify({ plan: checkout.dataset.checkout }) })
+          .then(data => data.paymentUrl ? window.open(data.paymentUrl, "_blank") : toast("Checkout registrado. Configure o link do gateway para cobrar de verdade."))
+          .catch(() => toast("Para pagamento real, rode pelo backend e configure o gateway."));
+      }
       const mapUser = event.target.closest("[data-map-user]");
       if (mapUser) {
         const user = userById(mapUser.dataset.mapUser);
@@ -2457,7 +2553,7 @@
     $("#albumCamera").addEventListener("change", event => readFiles(event.target, src => { albumBuffer.push(src); renderAlbumPreview(); }));
     $("#albumGallery").addEventListener("change", event => readFiles(event.target, src => { albumBuffer.push(src); renderAlbumPreview(); }));
 
-    $("#profileForm").addEventListener("submit", event => {
+    $("#profileForm").addEventListener("submit", async event => {
       event.preventDefault();
       const user = currentUser();
       user.name = $("#profileName").value.trim();
@@ -2468,6 +2564,7 @@
       user.countryCode = $("#profileDialCode").value;
       user.phone = $("#profilePhone").value.trim();
       user.bio = $("#profileBio").value.trim();
+      await geocodeUser(user);
       state.sessionEmail = user.email;
       save();
       renderAll();
@@ -2532,6 +2629,7 @@
     hydrateStatic();
     applyLanguage(state.language || "pt");
     boot();
+    syncFromBackend();
   </script>
 </body>
 </html>

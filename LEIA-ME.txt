@@ -1,39 +1,39 @@
-Freela'B Hub - Piloto
+Freela'B Hub - piloto com backend
 
-Este é o piloto navegável do marketplace para conectar clínicas/laboratórios e freelancers de prótese odontológica.
-
-Como testar
-1. Link publicado no Render:
-   https://freelab-hub-piloto.onrender.com
-
-2. Link local, quando estiver rodando no computador:
+Como rodar localmente
+1. Abra o terminal nesta pasta.
+2. Rode:
+   python server.py
+3. App:
    http://127.0.0.1:8801/
+4. Admin:
+   http://127.0.0.1:8801/admin.html
 
-3. Login de clínica/laboratório:
-   E-mail: clinica@demo.com
-   Senha: 123456
+Logins de teste
+- Clinica/lab: clinica@demo.com / 123456
+- Freelancer: freelancer@demo.com / 123456
+- Admin: admin@freelabhub.com / admin123456
 
-4. Login de freelancer:
-   E-mail: freelancer@demo.com
-   Senha: 123456
+O que agora e real no backend
+- Servidor Python servindo o app e as APIs.
+- Banco em JSON na pasta data/.
+- Login com sessao por cookie HttpOnly.
+- Senha guardada com hash PBKDF2.
+- Cadastro via API.
+- Confirmacao de e-mail do piloto gravando no servidor.
+- Estado do marketplace salvo no backend.
+- Painel admin separado para ver usuarios, verificar e bloquear.
+- Pagamentos registrados no backend.
+- Checkout preparado para receber links reais do Stripe ou gateway equivalente.
+- Geocodificacao preparada por OpenStreetMap/Nominatim para salvar latitude e longitude quando o backend estiver online.
 
-O que já está incluído
-- Cadastro inicial escolhendo clínica/laboratório ou freelancer.
-- Login, recuperação de senha e confirmação de e-mail simulada.
-- Painel diferente para quem procura e para quem oferece trabalho.
-- Cadastro inicial limpo, sem feed público antes do login.
-- Marketplace com vagas e freelancers.
-- Perfil com foto, especialidades, celular, e-mail e bio.
-- Álbum de fotos para trabalhos/portfólio.
-- Publicação de vaga com valor e quantidade de elementos.
-- Mensagens internas entre usuários.
-- Contato direto por WhatsApp quando quiser sair da conversa interna.
-- WhatsApp conta como contato e subtrai do crédito gratuito.
-- Planos individuais por tipo de cadastro.
-- Planos simulados: clínica/laboratório R$ 49,90 e freelancer R$ 9,90.
-- Estrutura PWA básica para instalar como app futuramente.
+Variaveis importantes no Render
+- HOST=0.0.0.0
+- DATA_DIR=/var/data/freelab-hub
+- ADMIN_EMAIL=admin@freelabhub.com
+- ADMIN_PASSWORD=defina_uma_senha_forte
+- STRIPE_PAYMENT_LINK_LAB=link_real_do_plano_lab
+- STRIPE_PAYMENT_LINK_FREELANCER=link_real_do_plano_freelancer
 
-Observações importantes
-- Este piloto salva os dados no navegador, usando localStorage.
-- Ainda não tem banco de dados real, autenticação real, pagamento real nem envio real de e-mail.
-- A próxima etapa, quando aprovarmos o fluxo, é transformar em backend com usuários reais, banco de dados, fotos persistentes e assinatura.
+Observacao
+Para pagamento 100% real e necessario configurar uma conta de gateway, criar os links/checkout dos planos e preencher as variaveis no Render. Sem essas chaves, o app registra a tentativa e avisa que falta configurar o gateway.
