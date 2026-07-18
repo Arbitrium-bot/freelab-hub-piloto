@@ -78,6 +78,7 @@
         <button data-panel="ads">Anuncios</button>
         <button data-panel="threads">Mensagens</button>
         <button data-panel="payments">Pagamentos</button>
+        <button data-panel="deletions">Exclusões</button>
         <button data-panel="audit">Auditoria</button>
       </nav>
 
@@ -119,6 +120,13 @@
         </div>
       </section>
 
+      <section class="panel" id="deletions">
+        <div class="box">
+          <h2>Pedidos de exclusão</h2>
+          <div id="deletionsTable"></div>
+        </div>
+      </section>
+
       <section class="panel" id="audit">
         <div class="box">
           <h2>Eventos das paginas</h2>
@@ -129,7 +137,7 @@
   </main>
 
   <script>
-    let snapshot = { users: [], classifieds: [], threads: [], payments: [], auditLog: [], metrics: {} };
+    let snapshot = { users: [], classifieds: [], threads: [], payments: [], deletionRequests: [], auditLog: [], metrics: {} };
 
     async function api(path, options = {}) {
       const response = await fetch(path, {
@@ -175,6 +183,7 @@
       renderAds();
       renderThreads();
       renderPayments();
+      renderDeletions();
       renderAudit();
     }
 
@@ -191,8 +200,9 @@
       const m = snapshot.metrics || {};
       const pending = snapshot.users.filter(user => !user.verified).length;
       const blocked = snapshot.users.filter(user => user.blocked).length;
+      const deletionPending = (snapshot.deletionRequests || []).filter(item => item.status !== "done").length;
       document.querySelector("#overviewContent").innerHTML = `
-        <p>${tag(`${pending} pendente(s)`, pending ? "warn" : "ok")} ${tag(`${blocked} bloqueado(s)`, blocked ? "bad" : "ok")} ${tag(`${m.payments || 0} pagamento(s)`)} ${tag(snapshot.emailConfigured ? "SMTP ativo" : "SMTP pendente", snapshot.emailConfigured ? "ok" : "warn")}</p>
+        <p>${tag(`${pending} pendente(s)`, pending ? "warn" : "ok")} ${tag(`${blocked} bloqueado(s)`, blocked ? "bad" : "ok")} ${tag(`${m.payments || 0} pagamento(s)`)} ${tag(`${deletionPending} exclusão(ões)`, deletionPending ? "warn" : "ok")} ${tag(snapshot.emailConfigured ? "SMTP ativo" : "SMTP pendente", snapshot.emailConfigured ? "ok" : "warn")}</p>
         <p>O painel administrativo tem controle separado do login comum. Usuarios bloqueados deixam de entrar no app e somem do marketplace publico.</p>
         <div class="actions">
           <button class="ghost" type="button" data-refresh>Atualizar dados</button>
@@ -272,6 +282,27 @@
         </table>`;
     }
 
+
+    function renderDeletions() {
+      document.querySelector("#deletionsTable").innerHTML = `
+        <table>
+          <thead><tr><th>Data</th><th>E-mail</th><th>Motivo</th><th>Status</th><th>Controle</th></tr></thead>
+          <tbody>${(snapshot.deletionRequests || []).slice().reverse().map(item => `
+            <tr>
+              <td>${fmtTime(item.at)}</td>
+              <td>${item.email || "-"}</td>
+              <td>${item.reason || "-"}</td>
+              <td>${tag(item.status || "pending", item.status === "done" ? "ok" : "warn")}</td>
+              <td>
+                <div class="actions">
+                  <button class="teal" data-deletion-status="done" data-id="${item.id}">Marcar concluído</button>
+                  <button class="ghost" data-deletion-status="reviewing" data-id="${item.id}">Em análise</button>
+                </div>
+              </td>
+            </tr>`).join("") || `<tr><td colspan="5">Nenhum pedido de exclusão.</td></tr>`}</tbody>
+        </table>`;
+    }
+
     function renderAudit() {
       document.querySelector("#auditList").innerHTML = (snapshot.auditLog || []).slice().reverse().map(item => `
         <div class="event">
@@ -330,6 +361,11 @@
       const paymentButton = event.target.closest("[data-payment-status]");
       if (paymentButton) {
         await api("/api/admin/content", { method: "POST", body: JSON.stringify({ kind: "payment", id: paymentButton.dataset.id, status: paymentButton.dataset.paymentStatus }) });
+        await loadAdmin();
+      }
+      const deletionButton = event.target.closest("[data-deletion-status]");
+      if (deletionButton) {
+        await api("/api/admin/content", { method: "POST", body: JSON.stringify({ kind: "deletionRequest", id: deletionButton.dataset.id, status: deletionButton.dataset.deletionStatus }) });
         await loadAdmin();
       }
       const openUser = event.target.closest("[data-open-user]");

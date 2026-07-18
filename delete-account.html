@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Excluir conta - Freela'B Hub</title><style>
+:root { --deep:#062f34; --teal:#00a7ad; --line:#dfe7e7; --muted:#657476; --soft:#f4f8f8; --danger:#c65d5d; --radius:8px; }
+* { box-sizing:border-box; }
+body { margin:0; font-family:Inter, system-ui, -apple-system, Segoe UI, sans-serif; color:#13282b; background:#f4f8f7; }
+main { max-width:920px; margin:0 auto; padding:32px 18px 56px; }
+header, section { background:white; border:1px solid var(--line); border-radius:var(--radius); padding:22px; margin-bottom:16px; box-shadow:0 18px 45px rgba(6,47,52,.07); }
+h1, h2, p { margin-top:0; } p, li { color:#33484b; line-height:1.65; } a { color:var(--deep); font-weight:800; } ul { padding-left:20px; }
+label { display:grid; gap:6px; font-weight:800; margin-bottom:12px; } input, textarea { width:100%; min-height:44px; border:1px solid var(--line); border-radius:var(--radius); padding:10px 12px; font:inherit; } textarea { min-height:120px; }
+button, .btn { min-height:42px; border:0; border-radius:var(--radius); padding:0 14px; font-weight:900; cursor:pointer; background:var(--deep); color:white; display:inline-flex; align-items:center; text-decoration:none; }
+.actions { display:flex; gap:10px; flex-wrap:wrap; } .muted { color:var(--muted); } .success { color:#064d50; font-weight:900; }
+</style></head>
+<body><main><header><h1>Excluir conta Freela'B Hub</h1><p>Use esta página para solicitar a exclusão da sua conta e dos dados associados, mesmo se você já removeu o app do celular.</p></header>
+<section><h2>O que será excluído</h2><p>Após validação do pedido, removemos perfil, publicações, conversas, contatos liberados e registros de pagamento vinculados à conta, salvo dados que precisem ser mantidos por obrigação legal, segurança ou prevenção de fraude.</p></section>
+<section><h2>Solicitar exclusão</h2><form id="deleteForm"><label>E-mail da conta<input id="email" type="email" required placeholder="seuemail@email.com"></label><label>Motivo opcional<textarea id="reason" placeholder="Conte se houve algum problema ou apenas envie em branco."></textarea></label><button type="submit">Enviar solicitação</button></form><p id="message"></p><p class="muted">Se você ainda consegue entrar no app, também pode excluir diretamente em Perfil &gt; Conta e dados.</p></section>
+<section><div class="actions"><a class="btn" href="index.html">Voltar ao app</a><a class="btn" href="privacy.html">Privacidade</a><a class="btn" href="terms.html">Termos</a></div></section></main><script>
+document.querySelector('#deleteForm').addEventListener('submit', async event => {
+  event.preventDefault();
+  const message = document.querySelector('#message');
+  message.textContent = 'Enviando...';
+  try {
+    const response = await fetch('/api/account-deletion-request', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ email: email.value.trim(), reason: reason.value.trim() }) });
+    if (!response.ok) throw new Error('fail');
+    message.className = 'success';
+    message.textContent = 'Solicitação recebida. O administrador analisará e concluirá a exclusão dos dados vinculados a este e-mail.';
+    event.target.reset();
+  } catch {
+    message.className = '';
+    message.textContent = 'Não foi possível enviar agora. Tente novamente em instantes.';
+  }
+});
+</script></body></html>

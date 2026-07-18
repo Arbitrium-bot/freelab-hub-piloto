@@ -1204,6 +1204,12 @@
         </div>
       </div>
 
+      <div class="legal-links" aria-label="Links legais">
+        <a href="privacy.html" target="_blank">Privacidade</a>
+        <a href="terms.html" target="_blank">Termos</a>
+        <a href="delete-account.html" target="_blank">Excluir conta</a>
+      </div>
+
     </div>
 
     <div class="commercial-panel">
@@ -1478,6 +1484,15 @@
               <button class="btn primary" type="submit">Salvar perfil</button>
             </div>
           </form>
+
+          <div class="box danger-zone">
+            <h2>Conta e dados</h2>
+            <p class="hint">Você pode excluir sua conta e os dados associados ao perfil, publicações, conversas, contatos e pagamentos registrados no Freela'B Hub.</p>
+            <div class="actions">
+              <button class="btn danger" type="button" id="deleteAccountButton">Excluir minha conta</button>
+              <a class="btn" href="delete-account.html" target="_blank">Solicitar exclusão por formulário</a>
+            </div>
+          </div>
 
           <div class="box">
             <h2 id="adBoxTitle">Minha publicação</h2>
@@ -2583,6 +2598,22 @@
         api("/api/checkout", { method: "POST", body: JSON.stringify({ plan: checkout.dataset.checkout }) })
           .then(data => data.paymentUrl ? window.open(data.paymentUrl, "_blank") : toast("Checkout registrado. Configure o link do gateway para cobrar de verdade."))
           .catch(() => toast("Para pagamento real, rode pelo backend e configure o gateway."));
+      }
+      const deleteAccount = event.target.closest("#deleteAccountButton");
+      if (deleteAccount) {
+        const user = currentUser();
+        if (!user) return;
+        if (!confirm("Excluir sua conta e seus dados do Freela'B Hub? Esta ação não pode ser desfeita.")) return;
+        const password = prompt("Digite sua senha para confirmar a exclusão da conta:");
+        if (!password) return;
+        api("/api/delete-account", { method: "POST", body: JSON.stringify({ password }) })
+          .then(() => {
+            localStorage.removeItem(STORAGE_KEY);
+            state = structuredClone(defaults);
+            showAuth();
+            toast("Conta excluída com sucesso.");
+          })
+          .catch(error => toast(error?.error === "invalid_password" ? "Senha incorreta." : "Não foi possível excluir a conta agora."));
       }
       const mapUser = event.target.closest("[data-map-user]");
       if (mapUser) {

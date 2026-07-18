@@ -1,0 +1,24 @@
+{
+  "packageId": "br.com.freelabhub.app",
+  "host": "freelab-hub-app.onrender.com",
+  "name": "Freela'B Hub",
+  "launcherName": "Freela'B",
+  "display": "standalone",
+  "themeColor": "#062f34",
+  "themeColorDark": "#062f34",
+  "navigationColor": "#062f34",
+  "backgroundColor": "#f4f8f7",
+  "startUrl": "/index.html",
+  "iconUrl": "https://freelab-hub-app.onrender.com/icon.svg",
+  "maskableIconUrl": "https://freelab-hub-app.onrender.com/icon.svg",
+  "monochromeIconUrl": "https://freelab-hub-app.onrender.com/icon.svg",
+  "splashScreenFadeOutDuration": 300,
+  "signingKey": {
+    "path": "./freelab-hub-upload-key.jks",
+    "alias": "freelab-hub"
+  },
+  "appVersionName": "1.0.0",
+  "appVersionCode": 1,
+  "shortcuts": [],
+  "generatorApp": "bubblewrap-cli"
+}

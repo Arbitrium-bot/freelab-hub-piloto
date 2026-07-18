@@ -4,3 +4,7 @@ Thumbs.db
 data/
 data-test/
 __pycache__/
+*.jks
+*.keystore
+android/.gradle/
+android/app/build/

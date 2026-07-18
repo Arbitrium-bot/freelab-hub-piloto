@@ -401,6 +401,21 @@ def mark_email_verified(data, user, audit_type):
     return token
 
 
+def remove_user_data(data, user):
+    user_id = user.get("id")
+    email = user.get("email", "").lower()
+    data["users"] = [item for item in data.get("users", []) if item.get("id") != user_id and item.get("email", "").lower() != email]
+    data["threads"] = [thread for thread in data.get("threads", []) if user_id not in thread.get("participants", [])]
+    data["classifieds"] = [item for item in data.get("classifieds", []) if item.get("ownerId") != user_id]
+    data["payments"] = [item for item in data.get("payments", []) if item.get("email", "").lower() != email]
+    data["externalConnections"] = [
+        item for item in data.get("externalConnections", [])
+        if item.get("userId") != user_id and item.get("targetId") != user_id
+    ]
+    if data.get("sessionEmail", "").lower() == email:
+        data["sessionEmail"] = ""
+
+
 def send_verification_email(user):
     code = generate_email_code(user)
     text = (
@@ -508,6 +523,7 @@ class Handler(SimpleHTTPRequestHandler):
                 "classifieds": data.get("classifieds", []),
                 "threads": data.get("threads", []),
                 "payments": data.get("payments", []),
+                "deletionRequests": data.get("deletionRequests", []),
                 "auditLog": data.get("auditLog", [])[-100:],
                 "emailConfigured": email_ready(),
                 "metrics": {
@@ -518,6 +534,7 @@ class Handler(SimpleHTTPRequestHandler):
                     "classifieds": len(data.get("classifieds", [])),
                     "threads": len(data.get("threads", [])),
                     "payments": len(data.get("payments", [])),
+                    "deletionRequests": len(data.get("deletionRequests", [])),
                 },
             })
         return super().do_GET()
@@ -692,6 +709,43 @@ class Handler(SimpleHTTPRequestHandler):
                 audit(data, "page_event", email=(current or {}).get("email", ""), page=body.get("page", ""), action=body.get("action", "view"))
                 save_state(data)
                 return self.send_json({"ok": True})
+            if parsed.path == "/api/account-deletion-request":
+                body = self.json_body()
+                email = body.get("email", "").strip().lower()
+                if not email or "@" not in email:
+                    return self.send_json({"error": "invalid_email"}, HTTPStatus.BAD_REQUEST)
+                data = state()
+                request_item = {
+                    "id": secrets.token_urlsafe(10),
+                    "at": now(),
+                    "email": email,
+                    "reason": body.get("reason", "").strip()[:600],
+                    "status": "pending",
+                }
+                data.setdefault("deletionRequests", []).append(request_item)
+                audit(data, "account_deletion_requested", email=email, id=request_item["id"])
+                save_state(data)
+                return self.send_json({"ok": True})
+            if parsed.path == "/api/delete-account":
+                current = self.current_session()
+                if not current:
+                    return self.send_json({"error": "unauthorized"}, HTTPStatus.UNAUTHORIZED)
+                body = self.json_body()
+                data = state()
+                user = next((u for u in data.get("users", []) if u.get("email", "").lower() == current["email"]), None)
+                if not user:
+                    return self.send_json({"error": "not_found"}, HTTPStatus.NOT_FOUND)
+                if not password_ok(body.get("password", ""), user.get("passwordHash", "")):
+                    return self.send_json({"error": "invalid_password"}, HTTPStatus.UNAUTHORIZED)
+                email = user.get("email", "")
+                user_id = user.get("id", "")
+                remove_user_data(data, user)
+                audit(data, "account_deleted_by_user", email=email, id=user_id)
+                save_state(data)
+                token = parse_cookie(self.headers.get("Cookie")).get("freelab_session")
+                delete_session(token)
+                cookie = "freelab_session=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0"
+                return self.send_json({"ok": True}, cookie=cookie)
             if parsed.path == "/api/logout":
                 token = parse_cookie(self.headers.get("Cookie")).get("freelab_session")
                 current = self.current_session()
@@ -721,9 +775,10 @@ class Handler(SimpleHTTPRequestHandler):
                 if not user:
                     return self.send_json({"error": "not_found"}, HTTPStatus.NOT_FOUND)
                 if body.get("delete"):
-                    data["users"] = [item for item in data.get("users", []) if item.get("id") != user.get("id")]
-                    data["threads"] = [thread for thread in data.get("threads", []) if user.get("id") not in thread.get("participants", [])]
-                    audit(data, "admin_user_delete", id=user["id"], email=user["email"])
+                    user_id = user.get("id", "")
+                    email = user.get("email", "")
+                    remove_user_data(data, user)
+                    audit(data, "admin_user_delete", id=user_id, email=email)
                     save_state(data)
                     return self.send_json({"ok": True})
                 if "verified" in body:
@@ -760,6 +815,10 @@ class Handler(SimpleHTTPRequestHandler):
                     for payment in data.get("payments", []):
                         if payment.get("id") == item_id:
                             payment["status"] = body.get("status", payment.get("status"))
+                elif kind == "deletionRequest":
+                    for request_item in data.get("deletionRequests", []):
+                        if request_item.get("id") == item_id:
+                            request_item["status"] = body.get("status", request_item.get("status", "pending"))
                 else:
                     return self.send_json({"error": "invalid_kind"}, HTTPStatus.BAD_REQUEST)
                 audit(data, "admin_content_update", kind=kind, id=item_id)
