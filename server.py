@@ -41,6 +41,7 @@ SMTP_TLS = os.environ.get("SMTP_TLS", "true").lower() != "false"
 SMTP_SSL = os.environ.get("SMTP_SSL", "false").lower() == "true"
 RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
 RESEND_FROM = os.environ.get("RESEND_FROM", SMTP_FROM)
+EMAIL_CODE_TTL = 60 * 60
 
 
 def now():
@@ -374,16 +375,42 @@ def send_email(to, subject, text):
     return True
 
 
+def generate_email_code(user):
+    code = f"{secrets.randbelow(900000) + 100000}"
+    user["emailCodeHash"] = password_hash(code)
+    user["emailCodeExpires"] = now() + EMAIL_CODE_TTL
+    user["emailToken"] = secrets.token_urlsafe(24)
+    return code
+
+
+def email_code_ok(user, code):
+    if not code or int(user.get("emailCodeExpires", 0)) < now():
+        return False
+    return password_ok("".join(ch for ch in str(code) if ch.isdigit()), user.get("emailCodeHash", ""))
+
+
+def mark_email_verified(data, user, audit_type):
+    user["verified"] = True
+    user.pop("emailToken", None)
+    user.pop("emailCodeHash", None)
+    user.pop("emailCodeExpires", None)
+    token = create_session(user["email"])
+    data["sessionEmail"] = user["email"]
+    audit(data, audit_type, email=user["email"])
+    save_state(data)
+    return token
+
+
 def send_verification_email(user):
-    token = user.setdefault("emailToken", secrets.token_urlsafe(24))
-    link = f"{APP_BASE_URL}/verify?token={quote(token)}"
+    code = generate_email_code(user)
     text = (
         f"Ola, {user.get('name', '')}.\n\n"
-        "Confirme seu cadastro no Freela'B Hub acessando o link abaixo:\n"
-        f"{link}\n\n"
+        "Seu codigo de confirmacao no Freela'B Hub e:\n\n"
+        f"{code}\n\n"
+        "Digite esse codigo na tela de confirmacao do cadastro. Ele expira em 1 hora.\n\n"
         "Se voce nao fez esse cadastro, ignore este e-mail."
     )
-    return send_email(user["email"], "Confirme seu cadastro no Freela'B Hub", text)
+    return send_email(user["email"], "Codigo de confirmacao Freela'B Hub", text)
 
 
 def send_password_reset_email(user):
@@ -460,12 +487,7 @@ class Handler(SimpleHTTPRequestHandler):
                 self.send_header("Location", "/?verified=invalid")
                 self.end_headers()
                 return
-            user["verified"] = True
-            user.pop("emailToken", None)
-            session_token = create_session(user["email"])
-            data["sessionEmail"] = user["email"]
-            audit(data, "verify_email_link", email=user["email"])
-            save_state(data)
+            session_token = mark_email_verified(data, user, "verify_email_link")
             self.send_response(HTTPStatus.FOUND)
             self.send_header("Set-Cookie", f"freelab_session={session_token}; Path=/; HttpOnly; SameSite=Lax; Max-Age={SESSION_TTL}")
             self.send_header("Location", "/?verified=ok")
@@ -564,15 +586,16 @@ class Handler(SimpleHTTPRequestHandler):
                 body = self.json_body()
                 data = state()
                 token = body.get("token", "")
-                user = next((u for u in data.get("users", []) if token and u.get("emailToken") == token), None)
+                email = body.get("email", "").strip().lower()
+                code = body.get("code", "")
+                user = None
+                if token:
+                    user = next((u for u in data.get("users", []) if u.get("emailToken") == token), None)
+                elif email and code:
+                    user = next((u for u in data.get("users", []) if u.get("email", "").lower() == email and email_code_ok(u, code)), None)
                 if not user:
                     return self.send_json({"error": "not_found"}, HTTPStatus.NOT_FOUND)
-                user["verified"] = True
-                user.pop("emailToken", None)
-                token = create_session(user["email"])
-                data["sessionEmail"] = user["email"]
-                audit(data, "verify_email", email=user["email"])
-                save_state(data)
+                token = mark_email_verified(data, user, "verify_email")
                 cookie = f"freelab_session={token}; Path=/; HttpOnly; SameSite=Lax; Max-Age={SESSION_TTL}"
                 return self.send_json({"state": public_state(data, user["email"])}, cookie=cookie)
             if parsed.path == "/api/resend-verification":
