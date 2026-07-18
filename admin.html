@@ -192,7 +192,7 @@
       const pending = snapshot.users.filter(user => !user.verified).length;
       const blocked = snapshot.users.filter(user => user.blocked).length;
       document.querySelector("#overviewContent").innerHTML = `
-        <p>${tag(`${pending} pendente(s)`, pending ? "warn" : "ok")} ${tag(`${blocked} bloqueado(s)`, blocked ? "bad" : "ok")} ${tag(`${m.payments || 0} pagamento(s)`)}</p>
+        <p>${tag(`${pending} pendente(s)`, pending ? "warn" : "ok")} ${tag(`${blocked} bloqueado(s)`, blocked ? "bad" : "ok")} ${tag(`${m.payments || 0} pagamento(s)`)} ${tag(snapshot.emailConfigured ? "SMTP ativo" : "SMTP pendente", snapshot.emailConfigured ? "ok" : "warn")}</p>
         <p>O painel administrativo tem controle separado do login comum. Usuarios bloqueados deixam de entrar no app e somem do marketplace publico.</p>
         <div class="actions">
           <button class="ghost" type="button" data-refresh>Atualizar dados</button>
@@ -212,6 +212,7 @@
               <td>
                 <div class="actions">
                   <button class="teal" data-user-action="verify" data-id="${user.id}">Verificar</button>
+                  <button class="ghost" data-user-action="resend" data-id="${user.id}">Reenviar e-mail</button>
                   <button class="danger" data-user-action="block" data-id="${user.id}">${user.blocked ? "Desbloquear" : "Bloquear"}</button>
                   <button class="ghost" data-user-action="role" data-role="${user.role === "lab" ? "freelancer" : "lab"}" data-id="${user.id}">Virar ${user.role === "lab" ? "freelancer" : "lab"}</button>
                   <button class="danger" data-user-action="delete" data-id="${user.id}">Excluir</button>
@@ -311,6 +312,7 @@
         const row = userButton.closest("tr");
         const payload = { id: userButton.dataset.id };
         if (action === "verify") payload.verified = true;
+        if (action === "resend") payload.resendEmail = true;
         if (action === "block") payload.blocked = !row.innerText.includes("Bloqueado");
         if (action === "role") payload.role = userButton.dataset.role;
         if (action === "delete") {

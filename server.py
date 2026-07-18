@@ -37,6 +37,7 @@ SMTP_USER = os.environ.get("SMTP_USER", "")
 SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD", "")
 SMTP_FROM = os.environ.get("SMTP_FROM", SMTP_USER or "no-reply@freelabhub.com")
 SMTP_TLS = os.environ.get("SMTP_TLS", "true").lower() != "false"
+SMTP_SSL = os.environ.get("SMTP_SSL", "false").lower() == "true"
 
 
 def now():
@@ -327,7 +328,12 @@ def send_email(to, subject, text):
     message["To"] = to
     message["Subject"] = subject
     message.set_content(text)
-    if SMTP_TLS:
+    if SMTP_SSL:
+        with smtplib.SMTP_SSL(SMTP_HOST, SMTP_PORT, timeout=12) as server:
+            if SMTP_USER:
+                server.login(SMTP_USER, SMTP_PASSWORD)
+            server.send_message(message)
+    elif SMTP_TLS:
         context = ssl.create_default_context()
         with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=12) as server:
             server.starttls(context=context)
@@ -352,6 +358,25 @@ def send_verification_email(user):
         "Se voce nao fez esse cadastro, ignore este e-mail."
     )
     return send_email(user["email"], "Confirme seu cadastro no Freela'B Hub", text)
+
+
+def send_password_reset_email(user):
+    token = secrets.token_urlsafe(24)
+    user["passwordResetToken"] = token
+    user["passwordResetExpires"] = now() + 3600
+    link = f"{APP_BASE_URL}/?resetToken={quote(token)}"
+    text = (
+        f"Ola, {user.get('name', '')}.\n\n"
+        "Recebemos uma solicitacao para redefinir sua senha no Freela'B Hub.\n"
+        "Acesse o link abaixo em ate 1 hora para criar uma nova senha:\n"
+        f"{link}\n\n"
+        "Se voce nao pediu isso, ignore este e-mail."
+    )
+    return send_email(user["email"], "Redefina sua senha no Freela'B Hub", text)
+
+
+def email_ready():
+    return bool(SMTP_HOST and SMTP_FROM)
 
 
 class Handler(SimpleHTTPRequestHandler):
@@ -436,6 +461,7 @@ class Handler(SimpleHTTPRequestHandler):
                 "threads": data.get("threads", []),
                 "payments": data.get("payments", []),
                 "auditLog": data.get("auditLog", [])[-100:],
+                "emailConfigured": email_ready(),
                 "metrics": {
                     "users": len(users),
                     "labs": len([u for u in users if u.get("role") == "lab"]),
@@ -507,12 +533,12 @@ class Handler(SimpleHTTPRequestHandler):
                 except Exception as exc:
                     audit(data, "verification_email_failed", email=email, error=str(exc)[:160])
                 save_state(data)
-                return self.send_json({"user": public_user(user), "state": public_state(data), "emailSent": email_sent, "emailConfigured": bool(SMTP_HOST)})
+                return self.send_json({"user": public_user(user), "state": public_state(data), "emailSent": email_sent, "emailConfigured": email_ready()})
             if parsed.path == "/api/verify-email":
                 body = self.json_body()
                 data = state()
                 token = body.get("token", "")
-                user = next((u for u in data.get("users", []) if (token and u.get("emailToken") == token) or u.get("email", "").lower() == body.get("email", "").lower()), None)
+                user = next((u for u in data.get("users", []) if token and u.get("emailToken") == token), None)
                 if not user:
                     return self.send_json({"error": "not_found"}, HTTPStatus.NOT_FOUND)
                 user["verified"] = True
@@ -523,6 +549,57 @@ class Handler(SimpleHTTPRequestHandler):
                 save_state(data)
                 cookie = f"freelab_session={token}; Path=/; HttpOnly; SameSite=Lax; Max-Age={SESSION_TTL}"
                 return self.send_json({"state": public_state(data, user["email"])}, cookie=cookie)
+            if parsed.path == "/api/resend-verification":
+                body = self.json_body()
+                data = state()
+                user = next((u for u in data.get("users", []) if u.get("email", "").lower() == body.get("email", "").strip().lower()), None)
+                if not user:
+                    return self.send_json({"error": "not_found"}, HTTPStatus.NOT_FOUND)
+                if user.get("verified"):
+                    return self.send_json({"ok": True, "alreadyVerified": True})
+                try:
+                    sent = send_verification_email(user)
+                    audit(data, "verification_email_resent" if sent else "verification_email_not_configured", email=user["email"])
+                    save_state(data)
+                    return self.send_json({"ok": sent, "emailSent": sent, "emailConfigured": email_ready()})
+                except Exception as exc:
+                    audit(data, "verification_email_failed", email=user["email"], error=str(exc)[:160])
+                    save_state(data)
+                    return self.send_json({"error": "email_failed", "detail": str(exc)}, HTTPStatus.BAD_GATEWAY)
+            if parsed.path == "/api/request-password-reset":
+                body = self.json_body()
+                data = state()
+                email = body.get("email", "").strip().lower()
+                user = next((u for u in data.get("users", []) if u.get("email", "").lower() == email), None)
+                if user:
+                    try:
+                        sent = send_password_reset_email(user)
+                        audit(data, "password_reset_email_sent" if sent else "password_reset_email_not_configured", email=email)
+                    except Exception as exc:
+                        audit(data, "password_reset_email_failed", email=email, error=str(exc)[:160])
+                        save_state(data)
+                        return self.send_json({"error": "email_failed", "detail": str(exc)}, HTTPStatus.BAD_GATEWAY)
+                    save_state(data)
+                    return self.send_json({"ok": True, "emailSent": sent, "emailConfigured": email_ready()})
+                audit(data, "password_reset_requested_unknown_email", email=email)
+                save_state(data)
+                return self.send_json({"ok": True, "emailSent": False, "emailConfigured": email_ready()})
+            if parsed.path == "/api/reset-password":
+                body = self.json_body()
+                token = body.get("token", "")
+                password = body.get("password", "")
+                if len(password) < 6:
+                    return self.send_json({"error": "weak_password"}, HTTPStatus.BAD_REQUEST)
+                data = state()
+                user = next((u for u in data.get("users", []) if token and u.get("passwordResetToken") == token), None)
+                if not user or int(user.get("passwordResetExpires", 0)) < now():
+                    return self.send_json({"error": "invalid_or_expired_token"}, HTTPStatus.BAD_REQUEST)
+                user["passwordHash"] = password_hash(password)
+                user.pop("passwordResetToken", None)
+                user.pop("passwordResetExpires", None)
+                audit(data, "password_reset_complete", email=user["email"])
+                save_state(data)
+                return self.send_json({"ok": True})
             if parsed.path == "/api/state":
                 current = self.current_session()
                 if not current:
@@ -606,6 +683,16 @@ class Handler(SimpleHTTPRequestHandler):
                     user["blocked"] = bool(body["blocked"])
                 if "role" in body:
                     user["role"] = body["role"]
+                if body.get("resendEmail"):
+                    try:
+                        sent = send_verification_email(user)
+                        audit(data, "admin_verification_email_sent" if sent else "admin_verification_email_not_configured", id=user["id"], email=user["email"])
+                        save_state(data)
+                        return self.send_json({"user": public_user(user), "emailSent": sent, "emailConfigured": email_ready()})
+                    except Exception as exc:
+                        audit(data, "admin_verification_email_failed", id=user["id"], email=user["email"], error=str(exc)[:160])
+                        save_state(data)
+                        return self.send_json({"error": "email_failed", "detail": str(exc)}, HTTPStatus.BAD_GATEWAY)
                 audit(data, "admin_user_update", id=user["id"], email=user["email"])
                 save_state(data)
                 return self.send_json({"user": public_user(user)})

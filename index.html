@@ -1178,7 +1178,7 @@
         <div class="actions">
           <button class="btn primary" type="submit">Criar cadastro</button>
         </div>
-        <p class="hint">Neste piloto a confirmação por e-mail é simulada: depois do cadastro aparece o botão de confirmação.</p>
+        <p class="hint">A confirmação chega por e-mail. Abra o link recebido para ativar a conta.</p>
       </form>
 
       <form id="forgotForm" class="auth-panel hidden">
@@ -1187,15 +1187,15 @@
         </label>
         <div class="actions">
           <button class="btn primary" type="submit">Enviar recuperação</button>
-          <button class="btn" type="button" id="resetPasswordButton">Trocar senha no piloto</button>
+          <button class="btn hidden" type="button" id="resetPasswordButton">Trocar senha no piloto</button>
         </div>
-        <p class="hint">Na versão real, o link chega no e-mail. Aqui simulamos para validar a experiência.</p>
+        <p class="hint">O link de redefinição chega no e-mail cadastrado e expira em 1 hora.</p>
       </form>
 
       <div class="box hidden" id="emailConfirmBox">
         <h3>Confirmação enviada</h3>
         <p class="hint" id="emailConfirmText"></p>
-        <button class="btn teal" id="confirmEmailButton">Confirmar e-mail neste piloto</button>
+        <button class="btn teal" id="confirmEmailButton">Reenviar confirmação</button>
       </div>
 
     </div>
@@ -1900,7 +1900,29 @@
       $("#authScreen").classList.remove("hidden");
     }
 
+    async function handlePasswordResetToken() {
+      const token = new URLSearchParams(location.search).get("resetToken");
+      if (!token) return false;
+      showAuth();
+      showAuthTab("forgot");
+      const password = prompt("Digite sua nova senha com pelo menos 6 caracteres:");
+      if (!password) return true;
+      try {
+        await api("/api/reset-password", { method: "POST", body: JSON.stringify({ token, password }) });
+        history.replaceState({}, "", location.pathname);
+        toast("Senha redefinida. Entre com a nova senha.");
+        showAuthTab("login");
+      } catch {
+        toast("Link inválido ou expirado. Peça uma nova recuperação.");
+      }
+      return true;
+    }
+
     function boot() {
+      if (new URLSearchParams(location.search).get("resetToken")) {
+        handlePasswordResetToken();
+        return;
+      }
       const savedUser = state.users.find(user => user.email === state.sessionEmail && user.verified);
       if (savedUser) showApp();
       else showAuth();
@@ -2387,8 +2409,15 @@
       if (!user) return toast("E-mail ou senha incorretos.");
       if (!user.verified) {
         $("#emailConfirmBox").classList.remove("hidden");
-        $("#emailConfirmText").textContent = `Enviamos a confirmação para ${user.email}.`;
-        $("#confirmEmailButton").onclick = () => { user.verified = true; state.sessionEmail = user.email; save(); showApp(); };
+        $("#emailConfirmText").textContent = `O e-mail ${user.email} ainda precisa ser confirmado. Abra o link recebido para ativar sua conta.`;
+        $("#confirmEmailButton").onclick = async () => {
+          try {
+            const data = await api("/api/resend-verification", { method: "POST", body: JSON.stringify({ email: user.email }) });
+            toast(data.emailSent ? "Confirmação reenviada por e-mail." : "SMTP ainda não configurado no servidor.");
+          } catch {
+            toast("Não foi possível reenviar agora.");
+          }
+        };
         return;
       }
       state.sessionEmail = user.email;
@@ -2448,11 +2477,13 @@
       $("#confirmEmailButton").onclick = async () => {
         if (backendOnline) {
           try {
-            const data = await api("/api/verify-email", { method: "POST", body: JSON.stringify({ email: user.email }) });
-            replaceState(data.state);
-            showApp();
+            const data = await api("/api/resend-verification", { method: "POST", body: JSON.stringify({ email: user.email }) });
+            toast(data.emailSent ? "Confirmação reenviada por e-mail." : "SMTP ainda não configurado no servidor.");
             return;
-          } catch {}
+          } catch {
+            toast("Não foi possível reenviar agora.");
+            return;
+          }
         }
         await geocodeUser(user);
         user.verified = true; state.sessionEmail = user.email; save(); showApp();
@@ -2460,9 +2491,15 @@
       toast("Cadastro criado. Confirme o e-mail para entrar.");
     });
 
-    $("#forgotForm").addEventListener("submit", event => {
+    $("#forgotForm").addEventListener("submit", async event => {
       event.preventDefault();
-      toast(`Link de recuperação enviado para ${$("#forgotEmail").value}.`);
+      const email = $("#forgotEmail").value.trim();
+      try {
+        const data = await api("/api/request-password-reset", { method: "POST", body: JSON.stringify({ email }) });
+        toast(data.emailSent ? `Link de recuperação enviado para ${email}.` : "SMTP ainda não configurado no servidor.");
+      } catch {
+        toast("Não foi possível enviar a recuperação agora.");
+      }
     });
 
     $("#resetPasswordButton").addEventListener("click", () => {
