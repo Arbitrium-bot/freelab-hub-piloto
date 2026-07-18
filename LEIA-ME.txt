@@ -28,12 +28,15 @@ O que agora e real no backend
 - Checkout preparado para receber links reais do Stripe ou gateway equivalente.
 - Geocodificacao preparada por OpenStreetMap/Nominatim para salvar latitude e longitude quando o backend estiver online.
 
-Variaveis importantes no Render
+Variaveis criadas pelo render.yaml
 - HOST=0.0.0.0
+- PYTHON_VERSION=3.11.9
 - DATABASE_URL=e criada automaticamente pelo banco freelab-hub-db no render.yaml
 - APP_BASE_URL=https://freelab-hub-app.onrender.com
 - ADMIN_EMAIL=admin@freelabhub.com
 - ADMIN_PASSWORD=defina_uma_senha_forte
+
+Variaveis para adicionar depois no Environment do Render, quando quiser ativar e-mail real e pagamento:
 - SMTP_HOST=servidor SMTP do e-mail
 - SMTP_PORT=587
 - SMTP_USER=usuario SMTP
@@ -49,6 +52,8 @@ PostgreSQL no Render
 O arquivo render.yaml define o banco freelab-hub-db. Ao criar/sincronizar o Blueprint no Render, se esse banco nao existir, o Render cria o PostgreSQL e injeta DATABASE_URL no web service Python.
 
 Importante sobre falha no Render
+O Blueprint agora pede so a senha do admin durante a criacao. As configuracoes de SMTP e Stripe ficam fora do render.yaml para nao bloquear o primeiro deploy se algum segredo estiver vazio.
+
 O projeto antigo era static_site. O Render pode falhar se tentar transformar esse servico estatico em web service Python com o mesmo nome. Por isso o render.yaml agora cria o servico novo freelab-hub-app. Use:
 https://freelab-hub-app.onrender.com
 
