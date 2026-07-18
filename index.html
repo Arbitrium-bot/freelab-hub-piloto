@@ -126,7 +126,7 @@
 
     .switch {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(2, 1fr);
       gap: 6px;
       padding: 5px;
       background: #edf4f4;
@@ -145,6 +145,18 @@
     .switch button.active {
       color: white;
       background: var(--deep);
+    }
+
+    .password-help {
+      width: fit-content;
+      min-height: 0;
+      margin-top: 2px;
+      padding: 0;
+      background: transparent;
+      color: var(--teal);
+      font-size: .86rem;
+      font-weight: 850;
+      text-align: left;
     }
 
     .form-grid {
@@ -705,24 +717,44 @@
       .hero-badge span { display: none; }
 
       .auth-card {
-        padding: 16px;
+        padding: 18px;
       }
 
       .brand-row {
-        margin-bottom: 14px;
+        margin-bottom: 16px;
       }
 
       input, select {
-        min-height: 48px;
-        padding: 12px 13px;
+        min-height: 52px;
+        padding: 13px 14px;
+        font-size: 1rem;
       }
 
       .switch button {
-        min-height: 46px;
+        min-height: 52px;
+        font-size: 1rem;
       }
 
       .btn {
-        min-height: 46px;
+        min-height: 52px;
+        font-size: 1rem;
+      }
+
+      label {
+        gap: 8px;
+        font-size: .92rem;
+      }
+
+      .form-grid {
+        gap: 14px;
+      }
+
+      .hint {
+        font-size: .94rem;
+      }
+
+      .password-help {
+        font-size: .94rem;
       }
 
       main { padding: 18px 12px 32px; }
@@ -755,7 +787,6 @@
       <div class="switch">
         <button class="active" data-auth-tab="login">Entrar</button>
         <button data-auth-tab="register">Cadastrar</button>
-        <button data-auth-tab="forgot">Esqueci</button>
       </div>
 
       <form id="loginForm" class="auth-panel">
@@ -765,6 +796,7 @@
           </label>
           <label class="wide">Senha
             <input id="loginPassword" type="password" required>
+            <button class="password-help" type="button" data-auth-tab="forgot">Esqueci minha senha</button>
           </label>
         </div>
         <div class="actions">
@@ -778,7 +810,7 @@
         <div class="form-grid">
           <label class="wide">Tipo de conta
             <select id="registerRole">
-              <option value="lab">Clínica ou laboratório procurando trabalho</option>
+              <option value="lab">Clínica ou lab procurando freelancer</option>
               <option value="freelancer">Freelancer oferecendo serviços</option>
             </select>
           </label>
