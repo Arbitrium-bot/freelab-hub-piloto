@@ -6,6 +6,7 @@
   <meta name="theme-color" content="#062f34">
   <title>Freela'B Hub - Piloto</title>
   <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="leaflet.css">
   <style>
     :root {
       --ink: #122527;
@@ -107,6 +108,10 @@
       align-items: center;
       gap: 12px;
       margin-bottom: 22px;
+    }
+
+    .brand-row .lang-toggle {
+      margin-left: auto;
     }
 
     .logo-dot {
@@ -233,6 +238,54 @@
       flex-wrap: wrap;
       gap: 10px;
       margin-top: 14px;
+    }
+
+    .lang-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px;
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, .82);
+      border: 1px solid var(--line);
+    }
+
+    .lang-toggle button {
+      min-height: 30px;
+      padding: 0 9px;
+      border-radius: 6px;
+      background: transparent;
+      color: var(--muted);
+      font-size: .78rem;
+      font-weight: 900;
+    }
+
+    .lang-toggle button.active {
+      background: var(--deep);
+      color: white;
+    }
+
+    .rail .lang-toggle {
+      width: 100%;
+      justify-content: center;
+      background: rgba(255, 255, 255, .08);
+      border-color: rgba(255, 255, 255, .14);
+    }
+
+    .rail .lang-toggle button {
+      flex: 1;
+      color: #d5e7e7;
+    }
+
+    .rail .lang-toggle button.active {
+      background: #dff8f4;
+      color: #062f34;
+    }
+
+    .phone-row {
+      display: grid;
+      grid-template-columns: minmax(112px, .38fr) minmax(0, 1fr);
+      gap: 8px;
     }
 
     .hint {
@@ -530,11 +583,73 @@
       overflow: hidden;
       border-radius: var(--radius);
       border: 1px solid var(--line);
-      background:
-        radial-gradient(circle at 30% 26%, rgba(0, 167, 173, .22), transparent 12rem),
-        radial-gradient(circle at 70% 38%, rgba(217, 168, 61, .18), transparent 14rem),
-        linear-gradient(180deg, #eaf7f6, #f8fbfb);
+      background: #dbe9e8;
       box-shadow: var(--shadow);
+    }
+
+    .leaflet-container {
+      font: inherit;
+    }
+
+    .leaflet-popup-content {
+      color: var(--ink);
+      line-height: 1.4;
+    }
+
+    .leaflet-popup-content strong {
+      display: block;
+      margin-bottom: 3px;
+    }
+
+    .leaflet-popup-content a {
+      color: var(--deep);
+      font-weight: 900;
+    }
+
+    .real-map-pin {
+      width: 18px;
+      height: 18px;
+      border-radius: 999px 999px 999px 0;
+      background: var(--teal);
+      border: 2px solid white;
+      box-shadow: 0 10px 22px rgba(6, 47, 52, .28);
+      transform: rotate(-45deg);
+    }
+
+    .real-map-pin.lab {
+      background: var(--gold);
+    }
+
+    .tile-map {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      background: #dbe9e8;
+    }
+
+    .tile-map img,
+    .tile-map .tile-marker {
+      position: absolute;
+    }
+
+    .tile-map img {
+      width: 25%;
+      height: 50%;
+      object-fit: cover;
+    }
+
+    .tile-marker {
+      width: 18px;
+      height: 18px;
+      border-radius: 999px 999px 999px 0;
+      background: var(--teal);
+      border: 2px solid white;
+      box-shadow: 0 10px 22px rgba(6, 47, 52, .28);
+      transform: translate(-50%, -100%) rotate(-45deg);
+    }
+
+    .tile-marker.lab {
+      background: var(--gold);
     }
 
     .map-grid-lines {
@@ -971,6 +1086,7 @@
 
       main { padding: 18px 12px 32px; }
       .form-grid, .toolbar, .metrics, .grid, .chat-form, .public-strip, .testimonial-grid, .map-layout { grid-template-columns: 1fr; }
+      .phone-row { grid-template-columns: 1fr; }
       .album, .preview { grid-template-columns: repeat(2, 1fr); }
       .bubble { max-width: 100%; }
       .top { flex-direction: column; }
@@ -994,6 +1110,10 @@
         <div>
           <h2>Freela'B Hub</h2>
           <p>Marketplace profissional</p>
+        </div>
+        <div class="lang-toggle" aria-label="Idioma">
+          <button class="active" type="button" data-lang="pt">PT</button>
+          <button type="button" data-lang="en">EN</button>
         </div>
       </div>
 
@@ -1034,7 +1154,7 @@
             <input id="registerCity" required placeholder="Ex.: São Paulo - SP">
           </label>
           <label>País
-            <input id="registerCountry" required placeholder="Ex.: Brasil">
+            <select id="registerCountry" required></select>
           </label>
           <label class="wide">Endereço ou região
             <input id="registerAddress" required placeholder="Ex.: Vila Mariana, São Paulo">
@@ -1043,7 +1163,10 @@
             <input id="registerEmail" type="email" required placeholder="seuemail@email.com">
           </label>
           <label>Celular
-            <input id="registerPhone" inputmode="tel" required placeholder="(11) 99999-9999">
+            <div class="phone-row">
+              <select id="registerDialCode" aria-label="DDI"></select>
+              <input id="registerPhone" inputmode="tel" required placeholder="11 99999-9999">
+            </div>
           </label>
           <label>Senha
             <input id="registerPassword" type="password" minlength="6" required>
@@ -1155,6 +1278,11 @@
           <h2>Freela'B Hub</h2>
           <p id="roleLabel">Painel</p>
         </div>
+      </div>
+
+      <div class="lang-toggle" aria-label="Idioma">
+        <button class="active" type="button" data-lang="pt">PT</button>
+        <button type="button" data-lang="en">EN</button>
       </div>
 
       <div class="profile-mini">
@@ -1282,16 +1410,7 @@
 
         <div class="metrics" id="mapStats"></div>
         <div class="map-layout">
-          <div class="world-map" id="worldMap" aria-label="Mapa mundial com cadastros">
-            <div class="map-grid-lines"></div>
-            <div class="continent america-north"></div>
-            <div class="continent america-south"></div>
-            <div class="continent europe"></div>
-            <div class="continent africa"></div>
-            <div class="continent asia"></div>
-            <div class="continent oceania"></div>
-            <div id="mapPins"></div>
-          </div>
+          <div class="world-map" id="worldMap" aria-label="Mapa mundial com cadastros"></div>
           <div class="box">
             <h2>Cadastros no mapa</h2>
             <p class="hint">Use esta lista para conferir a localização declarada. Endereço completo deve ser opcional ou liberado só após contato confirmado na versão comercial.</p>
@@ -1320,7 +1439,7 @@
                 <input id="profileCity" required>
               </label>
               <label>País
-                <input id="profileCountry" required>
+                <select id="profileCountry" required></select>
               </label>
               <label class="wide">Endereço ou região
                 <input id="profileAddress" required>
@@ -1329,7 +1448,10 @@
                 <input id="profileEmail" type="email" required>
               </label>
               <label>Celular
-                <input id="profilePhone" inputmode="tel" required>
+                <div class="phone-row">
+                  <select id="profileDialCode" aria-label="DDI"></select>
+                  <input id="profilePhone" inputmode="tel" required>
+                </div>
               </label>
               <label class="wide">Foto de perfil
                 <div class="photo-actions">
@@ -1474,6 +1596,7 @@
 
   <div class="toast" id="toast"></div>
 
+  <script src="leaflet.js"></script>
   <script>
     const specialties = [
       "Cerâmica",
@@ -1491,46 +1614,38 @@
     ];
 
     const STORAGE_KEY = "freelab-hub-comercial-v1";
-    const countryPins = {
-      "brasil": { x: 35, y: 62, label: "Brasil" },
-      "brazil": { x: 35, y: 62, label: "Brasil" },
-      "estados unidos": { x: 22, y: 31, label: "Estados Unidos" },
-      "united states": { x: 22, y: 31, label: "Estados Unidos" },
-      "usa": { x: 22, y: 31, label: "Estados Unidos" },
-      "canada": { x: 21, y: 21, label: "Canadá" },
-      "canadá": { x: 21, y: 21, label: "Canadá" },
-      "mexico": { x: 20, y: 41, label: "México" },
-      "méxico": { x: 20, y: 41, label: "México" },
-      "portugal": { x: 48, y: 36, label: "Portugal" },
-      "espanha": { x: 50, y: 36, label: "Espanha" },
-      "spain": { x: 50, y: 36, label: "Espanha" },
-      "frança": { x: 52, y: 33, label: "França" },
-      "france": { x: 52, y: 33, label: "França" },
-      "italia": { x: 54, y: 37, label: "Itália" },
-      "itália": { x: 54, y: 37, label: "Itália" },
-      "germany": { x: 54, y: 31, label: "Alemanha" },
-      "alemanha": { x: 54, y: 31, label: "Alemanha" },
-      "reino unido": { x: 50, y: 29, label: "Reino Unido" },
-      "united kingdom": { x: 50, y: 29, label: "Reino Unido" },
-      "argentina": { x: 33, y: 73, label: "Argentina" },
-      "chile": { x: 30, y: 72, label: "Chile" },
-      "colombia": { x: 29, y: 53, label: "Colômbia" },
-      "peru": { x: 30, y: 60, label: "Peru" },
-      "china": { x: 76, y: 39, label: "China" },
-      "japão": { x: 86, y: 41, label: "Japão" },
-      "japan": { x: 86, y: 41, label: "Japão" },
-      "australia": { x: 82, y: 71, label: "Austrália" },
-      "austrália": { x: 82, y: 71, label: "Austrália" },
-      "india": { x: 70, y: 48, label: "Índia" },
-      "índia": { x: 70, y: 48, label: "Índia" },
-      "africa do sul": { x: 56, y: 73, label: "África do Sul" },
-      "áfrica do sul": { x: 56, y: 73, label: "África do Sul" },
-      "south africa": { x: 56, y: 73, label: "África do Sul" }
-    };
+    let mapInstance = null;
+    let mapMarkers = [];
+    const countries = [
+      { name: "Brasil", code: "BR", dial: "+55", lat: -14.235, lng: -51.925 },
+      { name: "Portugal", code: "PT", dial: "+351", lat: 39.3999, lng: -8.2245 },
+      { name: "Estados Unidos", code: "US", dial: "+1", lat: 37.0902, lng: -95.7129 },
+      { name: "Canadá", code: "CA", dial: "+1", lat: 56.1304, lng: -106.3468 },
+      { name: "México", code: "MX", dial: "+52", lat: 23.6345, lng: -102.5528 },
+      { name: "Argentina", code: "AR", dial: "+54", lat: -38.4161, lng: -63.6167 },
+      { name: "Chile", code: "CL", dial: "+56", lat: -35.6751, lng: -71.543 },
+      { name: "Colômbia", code: "CO", dial: "+57", lat: 4.5709, lng: -74.2973 },
+      { name: "Peru", code: "PE", dial: "+51", lat: -9.19, lng: -75.0152 },
+      { name: "Espanha", code: "ES", dial: "+34", lat: 40.4637, lng: -3.7492 },
+      { name: "França", code: "FR", dial: "+33", lat: 46.2276, lng: 2.2137 },
+      { name: "Itália", code: "IT", dial: "+39", lat: 41.8719, lng: 12.5674 },
+      { name: "Alemanha", code: "DE", dial: "+49", lat: 51.1657, lng: 10.4515 },
+      { name: "Reino Unido", code: "GB", dial: "+44", lat: 55.3781, lng: -3.436 },
+      { name: "África do Sul", code: "ZA", dial: "+27", lat: -30.5595, lng: 22.9375 },
+      { name: "Índia", code: "IN", dial: "+91", lat: 20.5937, lng: 78.9629 },
+      { name: "China", code: "CN", dial: "+86", lat: 35.8617, lng: 104.1954 },
+      { name: "Japão", code: "JP", dial: "+81", lat: 36.2048, lng: 138.2529 },
+      { name: "Austrália", code: "AU", dial: "+61", lat: -25.2744, lng: 133.7751 }
+    ];
+    const countryLookup = Object.fromEntries(countries.flatMap(country => [
+      [country.name.toLowerCase(), country],
+      [country.code.toLowerCase(), country]
+    ]));
 
     const defaults = {
       sessionEmail: "clinica@demo.com",
       activeThread: null,
+      language: "pt",
       users: [
         {
           id: "lab-demo",
@@ -1540,6 +1655,7 @@
           country: "Brasil",
           address: "Vila Nova, São Paulo - SP",
           email: "clinica@demo.com",
+          countryCode: "+55",
           phone: "(11) 98873-7694",
           password: "123456",
           verified: true,
@@ -1561,6 +1677,7 @@
           country: "Brasil",
           address: "Guarulhos - SP",
           email: "freelancer@demo.com",
+          countryCode: "+55",
           phone: "(11) 97777-0000",
           password: "123456",
           verified: true,
@@ -1582,6 +1699,7 @@
           country: "Brasil",
           address: "Santo André - SP",
           email: "helen@demo.com",
+          countryCode: "+55",
           phone: "(11) 96666-0000",
           password: "123456",
           verified: true,
@@ -1607,6 +1725,22 @@
     function $(selector) { return document.querySelector(selector); }
     function $all(selector) { return [...document.querySelectorAll(selector)]; }
 
+    function countryFor(value) {
+      return countryLookup[String(value || "").trim().toLowerCase()] || countries[0];
+    }
+
+    function fillCountrySelects() {
+      const countryOptions = countries.map(country => `<option value="${country.name}">${country.name}</option>`).join("");
+      const dialOptions = countries.map(country => `<option value="${country.dial}">${country.code} ${country.dial}</option>`).join("");
+      ["#registerCountry", "#profileCountry"].forEach(selector => { if ($(selector)) $(selector).innerHTML = countryOptions; });
+      ["#registerDialCode", "#profileDialCode"].forEach(selector => { if ($(selector)) $(selector).innerHTML = dialOptions; });
+    }
+
+    function syncDialWithCountry(countrySelector, dialSelector) {
+      const country = countryFor($(countrySelector).value);
+      $(dialSelector).value = country.dial;
+    }
+
     function load() {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (!saved) return structuredClone(defaults);
@@ -1617,7 +1751,8 @@
           return {
             ...user,
             country: user.country || fallback?.country || "",
-            address: user.address || fallback?.address || ""
+            address: user.address || fallback?.address || "",
+            countryCode: user.countryCode || fallback?.countryCode || countryFor(user.country)?.dial || "+55"
           };
         });
         return loaded;
@@ -1659,14 +1794,25 @@
     }
 
     function mapPosition(user, index = 0) {
-      const key = String(user.country || "").trim().toLowerCase();
-      const base = countryPins[key] || countryPins.brasil;
-      const offset = ((index % 5) - 2) * 1.4;
+      const base = countryFor(user.country);
+      const offset = ((index % 5) - 2) * .65;
       return {
-        x: Math.max(5, Math.min(95, base.x + offset)),
-        y: Math.max(8, Math.min(88, base.y + (index % 3 - 1) * 1.2)),
-        country: base.label
+        lat: base.lat + (index % 3 - 1) * .45,
+        lng: base.lng + offset,
+        country: base.name
       };
+    }
+
+    function mapSearchUrl(user) {
+      const query = [user.address, user.city, user.country].filter(Boolean).join(", ");
+      return `https://www.openstreetmap.org/search?query=${encodeURIComponent(query)}`;
+    }
+
+    function projectWorld(lat, lng) {
+      const sin = Math.sin(lat * Math.PI / 180);
+      const x = (lng + 180) / 360 * 100;
+      const y = (0.5 - Math.log((1 + sin) / (1 - sin)) / (4 * Math.PI)) * 100;
+      return { x: Math.max(0, Math.min(100, x)), y: Math.max(0, Math.min(100, y)) };
     }
 
     function toast(message) {
@@ -1694,11 +1840,26 @@
       $("#authScreen").classList.remove("hidden");
     }
 
+    function applyLanguage(lang) {
+      document.documentElement.lang = lang === "en" ? "en" : "pt-BR";
+      $all("[data-lang]").forEach(button => button.classList.toggle("active", button.dataset.lang === lang));
+    }
+
+    function setLanguage(lang) {
+      state.language = lang;
+      applyLanguage(lang);
+      save();
+      toast(lang === "en" ? "English selected. Full translation is ready for the next phase." : "Português selecionado.");
+    }
+
     function hydrateStatic() {
       const specialtyOptions = specialties.map(item => `<option>${item}</option>`).join("");
       $("#adSpecialty").innerHTML = specialtyOptions;
       $("#specialtyFilter").innerHTML = `<option value="todas">Todas as especialidades</option>${specialtyOptions}`;
       $("#specialtyButtons").innerHTML = specialties.map(item => `<button class="chip" type="button" data-specialty="${item}">${item}</button>`).join("");
+      fillCountrySelects();
+      $("#registerCountry").value = "Brasil";
+      $("#registerDialCode").value = "+55";
     }
 
     function renderAll() {
@@ -1724,6 +1885,7 @@
       $("#profileCountry").value = user.country || "Brasil";
       $("#profileAddress").value = user.address || user.city || "";
       $("#profileEmail").value = user.email;
+      $("#profileDialCode").value = user.countryCode || countryFor(user.country).dial;
       $("#profilePhone").value = user.phone;
       $("#profileBio").value = user.bio || "";
       $("#adTitle").value = user.adTitle || "";
@@ -1847,10 +2009,7 @@
         <div class="metric"><strong>${listed.length}</strong><span>perfis localizados</span></div>
         <div class="metric"><strong>${labs}</strong><span>clínicas/labs no mapa</span></div>
         <div class="metric"><strong>${freelancers}</strong><span>freelancers no mapa</span></div>`;
-      $("#mapPins").innerHTML = listed.map((user, index) => {
-        const point = mapPosition(user, index);
-        return `<button class="map-pin ${user.role}" style="left:${point.x}%;top:${point.y}%;" type="button" data-map-user="${user.id}" aria-label="${user.name} em ${locationLabel(user)}"><span>${user.name}<br>${locationLabel(user)}</span></button>`;
-      }).join("");
+      renderLeafletMap(listed);
       $("#mapList").innerHTML = listed.map(user => `
         <article class="map-mini-card">
           <h3>${user.name}</h3>
@@ -1858,8 +2017,62 @@
           <div class="actions">
             <button class="btn primary" data-message="${user.id}">Mensagem</button>
             <button class="btn teal" data-whatsapp-user="${user.id}">WhatsApp</button>
+            <a class="btn" href="${mapSearchUrl(user)}" target="_blank" rel="noopener">Ver mapa</a>
           </div>
         </article>`).join("") || `<div class="empty">Nenhum cadastro com localização ainda.</div>`;
+    }
+
+    function renderLeafletMap(listed) {
+      const mapEl = $("#worldMap");
+      if (!mapEl) return;
+      if (!window.L) {
+        renderTileMap(mapEl, listed);
+        return;
+      }
+      if (!mapInstance) {
+        mapInstance = L.map(mapEl, { worldCopyJump: true, scrollWheelZoom: false }).setView([10, -20], 2);
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+          maxZoom: 18,
+          attribution: "&copy; OpenStreetMap"
+        }).addTo(mapInstance);
+      }
+      mapMarkers.forEach(marker => marker.remove());
+      mapMarkers = listed.map((user, index) => {
+        const point = mapPosition(user, index);
+        const icon = L.divIcon({
+          className: "",
+          html: `<div class="real-map-pin ${user.role === "lab" ? "lab" : ""}"></div>`,
+          iconSize: [18, 18],
+          iconAnchor: [9, 18]
+        });
+        return L.marker([point.lat, point.lng], { icon }).addTo(mapInstance).bindPopup(`
+          <strong>${user.name}</strong>
+          ${locationLabel(user, true)}<br>
+          <a href="${mapSearchUrl(user)}" target="_blank" rel="noopener">Abrir endereço</a>
+        `);
+      });
+      if (mapMarkers.length) {
+        const group = L.featureGroup(mapMarkers);
+        mapInstance.fitBounds(group.getBounds().pad(.28), { maxZoom: 4 });
+      } else {
+        mapInstance.setView([10, -20], 2);
+      }
+      setTimeout(() => mapInstance.invalidateSize(), 80);
+    }
+
+    function renderTileMap(mapEl, listed) {
+      const tiles = [];
+      for (let x = 0; x < 4; x++) {
+        for (let y = 1; y < 3; y++) {
+          tiles.push(`<img src="https://tile.openstreetmap.org/2/${x}/${y}.png" alt="" style="left:${x * 25}%;top:${(y - 1) * 50}%;">`);
+        }
+      }
+      const markers = listed.map((user, index) => {
+        const point = mapPosition(user, index);
+        const pos = projectWorld(point.lat, point.lng);
+        return `<a class="tile-marker ${user.role === "lab" ? "lab" : ""}" href="${mapSearchUrl(user)}" target="_blank" rel="noopener" title="${user.name} - ${locationLabel(user)}" style="left:${pos.x}%;top:${pos.y}%;"></a>`;
+      }).join("");
+      mapEl.innerHTML = `<div class="tile-map">${tiles.join("")}${markers}</div>`;
     }
 
     function card(user) {
@@ -2022,10 +2235,12 @@
       $("#albumPreview").innerHTML = albumBuffer.map(src => `<img src="${src}" alt="">`).join("");
     }
 
-    function normalizePhone(phone) {
+    function normalizePhone(phone, dialCode = "+55") {
       const digits = String(phone || "").replace(/\D/g, "");
       if (!digits) return "";
-      return digits.startsWith("55") ? digits : `55${digits}`;
+      if (String(phone || "").trim().startsWith("+")) return digits;
+      const ddi = String(dialCode || "+55").replace(/\D/g, "") || "55";
+      return digits.startsWith(ddi) ? digits : `${ddi}${digits}`;
     }
 
     function openUserWhatsapp(targetId) {
@@ -2047,7 +2262,7 @@
       save();
       updateQuota();
       renderMetrics();
-      const phone = normalizePhone(target.phone);
+      const phone = normalizePhone(target.phone, target.countryCode);
       const text = encodeURIComponent(`Olá, vi seu cadastro no Freela'B Hub e gostaria de conversar.`);
       if (phone) window.open(`https://wa.me/${phone}?text=${text}`, "_blank");
       else toast("Contato contabilizado, mas esse usuário ainda não cadastrou celular.");
@@ -2074,7 +2289,7 @@
       save();
       updateQuota();
       renderMetrics();
-      const phone = normalizePhone(owner.phone);
+      const phone = normalizePhone(owner.phone, owner.countryCode);
       const text = encodeURIComponent(`Olá, vi seu classificado "${item.title}" no Freela'B Hub e gostaria de conversar.`);
       if (phone) window.open(`https://wa.me/${phone}?text=${text}`, "_blank");
       else toast("WhatsApp contabilizado, mas esse usuário ainda não cadastrou celular.");
@@ -2123,6 +2338,7 @@
         country: $("#registerCountry").value.trim(),
         address: $("#registerAddress").value.trim(),
         email,
+        countryCode: $("#registerDialCode").value,
         phone: $("#registerPhone").value.trim(),
         password: $("#registerPassword").value,
         verified: false,
@@ -2163,10 +2379,18 @@
 
     $("#logoutButton").addEventListener("click", () => showAuth());
 
+    $all("[data-lang]").forEach(button => {
+      button.addEventListener("click", () => setLanguage(button.dataset.lang));
+    });
+
+    $("#registerCountry").addEventListener("change", () => syncDialWithCountry("#registerCountry", "#registerDialCode"));
+    $("#profileCountry").addEventListener("change", () => syncDialWithCountry("#profileCountry", "#profileDialCode"));
+
     $all(".nav button").forEach(button => {
       button.addEventListener("click", () => {
         $all(".nav button").forEach(item => item.classList.toggle("active", item === button));
         $all(".panel").forEach(panel => panel.classList.toggle("active", panel.id === button.dataset.tab));
+        if (button.dataset.tab === "map") setTimeout(() => mapInstance?.invalidateSize(), 80);
       });
     });
 
@@ -2235,6 +2459,7 @@
       user.country = $("#profileCountry").value.trim();
       user.address = $("#profileAddress").value.trim();
       user.email = $("#profileEmail").value.trim();
+      user.countryCode = $("#profileDialCode").value;
       user.phone = $("#profilePhone").value.trim();
       user.bio = $("#profileBio").value.trim();
       state.sessionEmail = user.email;
@@ -2299,6 +2524,7 @@
     }
 
     hydrateStatic();
+    applyLanguage(state.language || "pt");
     showAuth();
   </script>
 </body>
