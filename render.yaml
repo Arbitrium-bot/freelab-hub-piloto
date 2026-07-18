@@ -1,20 +1,40 @@
 services:
   - type: web
     name: freelab-hub-piloto
-    env: python
+    runtime: python
     plan: free
-    buildCommand: ""
+    buildCommand: "pip install -r requirements.txt"
     startCommand: "python server.py"
     envVars:
       - key: HOST
         value: "0.0.0.0"
-      - key: DATA_DIR
-        value: "/var/data/freelab-hub"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: freelab-hub-db
+          property: connectionString
+      - key: APP_BASE_URL
+        value: "https://freelab-hub-piloto.onrender.com"
       - key: ADMIN_EMAIL
         value: "admin@freelabhub.com"
       - key: ADMIN_PASSWORD
+        sync: false
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASSWORD
+        sync: false
+      - key: SMTP_FROM
         sync: false
       - key: STRIPE_PAYMENT_LINK_LAB
         sync: false
       - key: STRIPE_PAYMENT_LINK_FREELANCER
         sync: false
+
+databases:
+  - name: freelab-hub-db
+    plan: free
+    databaseName: freelab_hub
+    user: freelab_hub

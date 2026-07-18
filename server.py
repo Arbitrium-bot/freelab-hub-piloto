@@ -4,21 +4,39 @@ import hmac
 import json
 import os
 import secrets
+import smtplib
+import ssl
 import time
+from email.message import EmailMessage
 from http import HTTPStatus
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import quote, urlparse
+from urllib.parse import parse_qs, quote, urlparse
 from urllib.request import Request, urlopen
+
+try:
+    import psycopg
+    from psycopg.types.json import Json
+except ImportError:
+    psycopg = None
+    Json = None
 
 
 ROOT = Path(__file__).resolve().parent
 DATA_DIR = Path(os.environ.get("DATA_DIR", ROOT / "data"))
 DB_PATH = DATA_DIR / "freelab_state.json"
 SESSION_PATH = DATA_DIR / "sessions.json"
+DATABASE_URL = os.environ.get("DATABASE_URL", "")
 SESSION_TTL = 60 * 60 * 24 * 14
 ADMIN_EMAIL = os.environ.get("ADMIN_EMAIL", "admin@freelabhub.com").lower()
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "admin123456")
+APP_BASE_URL = os.environ.get("APP_BASE_URL", "http://127.0.0.1:8801").rstrip("/")
+SMTP_HOST = os.environ.get("SMTP_HOST", "")
+SMTP_PORT = int(os.environ.get("SMTP_PORT", "587"))
+SMTP_USER = os.environ.get("SMTP_USER", "")
+SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD", "")
+SMTP_FROM = os.environ.get("SMTP_FROM", SMTP_USER or "no-reply@freelabhub.com")
+SMTP_TLS = os.environ.get("SMTP_TLS", "true").lower() != "false"
 
 
 def now():
@@ -108,11 +126,29 @@ def default_state():
 
 
 def ensure_data():
+    if use_postgres():
+        with db_conn() as conn:
+            conn.execute("CREATE TABLE IF NOT EXISTS app_state (id text PRIMARY KEY, payload jsonb NOT NULL)")
+            conn.execute("CREATE TABLE IF NOT EXISTS sessions (token text PRIMARY KEY, email text NOT NULL, role text NOT NULL, created_at bigint NOT NULL)")
+            conn.execute(
+                "INSERT INTO app_state (id, payload) VALUES ('main', %s) ON CONFLICT (id) DO NOTHING",
+                (Json(default_state()),),
+            )
+            conn.commit()
+        return
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     if not DB_PATH.exists():
         write_json(DB_PATH, default_state())
     if not SESSION_PATH.exists():
         write_json(SESSION_PATH, {})
+
+
+def use_postgres():
+    return bool(DATABASE_URL and psycopg)
+
+
+def db_conn():
+    return psycopg.connect(DATABASE_URL)
 
 
 def read_json(path, fallback=None):
@@ -129,9 +165,29 @@ def write_json(path, data):
     tmp.replace(path)
 
 
-def state():
+def read_state_store():
     ensure_data()
-    data = read_json(DB_PATH, default_state())
+    if use_postgres():
+        with db_conn() as conn:
+            row = conn.execute("SELECT payload FROM app_state WHERE id = 'main'").fetchone()
+            return row[0] if row else default_state()
+    return read_json(DB_PATH, default_state())
+
+
+def write_state_store(data):
+    if use_postgres():
+        with db_conn() as conn:
+            conn.execute(
+                "INSERT INTO app_state (id, payload) VALUES ('main', %s) ON CONFLICT (id) DO UPDATE SET payload = EXCLUDED.payload",
+                (Json(data),),
+            )
+            conn.commit()
+        return
+    write_json(DB_PATH, data)
+
+
+def state():
+    data = read_state_store()
     data.setdefault("payments", [])
     data.setdefault("auditLog", [])
     for user in data.get("users", []):
@@ -146,7 +202,7 @@ def save_state(data):
     for user in data.get("users", []):
         if user.get("password"):
             user["passwordHash"] = password_hash(user.pop("password"))
-    write_json(DB_PATH, data)
+    write_state_store(data)
 
 
 def audit(data, event_type, **extra):
@@ -179,6 +235,7 @@ def public_user(user):
     clean = dict(user)
     clean.pop("password", None)
     clean.pop("passwordHash", None)
+    clean.pop("emailToken", None)
     return clean
 
 
@@ -191,8 +248,14 @@ def public_state(data, email=""):
 
 def sessions():
     ensure_data()
-    items = read_json(SESSION_PATH, {})
     cutoff = now() - SESSION_TTL
+    if use_postgres():
+        with db_conn() as conn:
+            conn.execute("DELETE FROM sessions WHERE created_at < %s", (cutoff,))
+            rows = conn.execute("SELECT token, email, role, created_at FROM sessions").fetchall()
+            conn.commit()
+            return {token: {"email": email, "role": role, "createdAt": created_at} for token, email, role, created_at in rows}
+    items = read_json(SESSION_PATH, {})
     changed = False
     for token, item in list(items.items()):
         if item.get("createdAt", 0) < cutoff:
@@ -205,10 +268,34 @@ def sessions():
 
 def create_session(email, role="user"):
     token = secrets.token_urlsafe(32)
+    if use_postgres():
+        ensure_data()
+        with db_conn() as conn:
+            conn.execute(
+                "INSERT INTO sessions (token, email, role, created_at) VALUES (%s, %s, %s, %s)",
+                (token, email.lower(), role, now()),
+            )
+            conn.commit()
+        return token
     items = sessions()
     items[token] = {"email": email.lower(), "role": role, "createdAt": now()}
     write_json(SESSION_PATH, items)
     return token
+
+
+def delete_session(token):
+    if not token:
+        return
+    if use_postgres():
+        ensure_data()
+        with db_conn() as conn:
+            conn.execute("DELETE FROM sessions WHERE token = %s", (token,))
+            conn.commit()
+        return
+    items = sessions()
+    if token in items:
+        items.pop(token, None)
+        write_json(SESSION_PATH, items)
 
 
 def parse_cookie(header):
@@ -230,6 +317,41 @@ def geocode(address):
     if not payload:
         return None
     return {"lat": float(payload[0]["lat"]), "lng": float(payload[0]["lon"])}
+
+
+def send_email(to, subject, text):
+    if not SMTP_HOST:
+        return False
+    message = EmailMessage()
+    message["From"] = SMTP_FROM
+    message["To"] = to
+    message["Subject"] = subject
+    message.set_content(text)
+    if SMTP_TLS:
+        context = ssl.create_default_context()
+        with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=12) as server:
+            server.starttls(context=context)
+            if SMTP_USER:
+                server.login(SMTP_USER, SMTP_PASSWORD)
+            server.send_message(message)
+    else:
+        with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=12) as server:
+            if SMTP_USER:
+                server.login(SMTP_USER, SMTP_PASSWORD)
+            server.send_message(message)
+    return True
+
+
+def send_verification_email(user):
+    token = user.setdefault("emailToken", secrets.token_urlsafe(24))
+    link = f"{APP_BASE_URL}/verify?token={quote(token)}"
+    text = (
+        f"Ola, {user.get('name', '')}.\n\n"
+        "Confirme seu cadastro no Freela'B Hub acessando o link abaixo:\n"
+        f"{link}\n\n"
+        "Se voce nao fez esse cadastro, ignore este e-mail."
+    )
+    return send_email(user["email"], "Confirme seu cadastro no Freela'B Hub", text)
 
 
 class Handler(SimpleHTTPRequestHandler):
@@ -278,6 +400,26 @@ class Handler(SimpleHTTPRequestHandler):
 
     def do_GET(self):
         parsed = urlparse(self.path)
+        if parsed.path == "/verify":
+            token = parse_qs(parsed.query).get("token", [""])[0]
+            data = state()
+            user = next((u for u in data.get("users", []) if u.get("emailToken") == token and token), None)
+            if not user:
+                self.send_response(HTTPStatus.FOUND)
+                self.send_header("Location", "/?verified=invalid")
+                self.end_headers()
+                return
+            user["verified"] = True
+            user.pop("emailToken", None)
+            session_token = create_session(user["email"])
+            data["sessionEmail"] = user["email"]
+            audit(data, "verify_email_link", email=user["email"])
+            save_state(data)
+            self.send_response(HTTPStatus.FOUND)
+            self.send_header("Set-Cookie", f"freelab_session={session_token}; Path=/; HttpOnly; SameSite=Lax; Max-Age={SESSION_TTL}")
+            self.send_header("Location", "/?verified=ok")
+            self.end_headers()
+            return
         if parsed.path == "/api/state":
             current = self.current_session()
             if not current:
@@ -354,18 +496,27 @@ class Handler(SimpleHTTPRequestHandler):
                     "adElements": "",
                     "adDescription": "",
                     "album": [],
+                    "emailToken": secrets.token_urlsafe(24),
                 }
                 data.setdefault("users", []).append(user)
                 audit(data, "register", email=email)
+                email_sent = False
+                try:
+                    email_sent = send_verification_email(user)
+                    audit(data, "verification_email_sent" if email_sent else "verification_email_not_configured", email=email)
+                except Exception as exc:
+                    audit(data, "verification_email_failed", email=email, error=str(exc)[:160])
                 save_state(data)
-                return self.send_json({"user": public_user(user), "state": public_state(data)})
+                return self.send_json({"user": public_user(user), "state": public_state(data), "emailSent": email_sent, "emailConfigured": bool(SMTP_HOST)})
             if parsed.path == "/api/verify-email":
                 body = self.json_body()
                 data = state()
-                user = next((u for u in data.get("users", []) if u.get("email", "").lower() == body.get("email", "").lower()), None)
+                token = body.get("token", "")
+                user = next((u for u in data.get("users", []) if (token and u.get("emailToken") == token) or u.get("email", "").lower() == body.get("email", "").lower()), None)
                 if not user:
                     return self.send_json({"error": "not_found"}, HTTPStatus.NOT_FOUND)
                 user["verified"] = True
+                user.pop("emailToken", None)
                 token = create_session(user["email"])
                 data["sessionEmail"] = user["email"]
                 audit(data, "verify_email", email=user["email"])
@@ -416,11 +567,13 @@ class Handler(SimpleHTTPRequestHandler):
                 save_state(data)
                 return self.send_json({"ok": True})
             if parsed.path == "/api/logout":
+                token = parse_cookie(self.headers.get("Cookie")).get("freelab_session")
                 current = self.current_session()
                 if current:
                     data = state()
                     audit(data, "logout", email=current.get("email", ""))
                     save_state(data)
+                delete_session(token)
                 cookie = "freelab_session=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0"
                 return self.send_json({"ok": True}, cookie=cookie)
             if parsed.path == "/api/admin/login":

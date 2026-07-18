@@ -2434,13 +2434,17 @@
         backendOnline = true;
         replaceState(data.state);
         Object.assign(user, data.user);
+        user.emailSent = data.emailSent;
+        user.emailConfigured = data.emailConfigured;
       } catch {
         backendOnline = false;
       }
       if (!state.users.some(item => item.email === user.email)) state.users.push(user);
       save();
       $("#emailConfirmBox").classList.remove("hidden");
-      $("#emailConfirmText").textContent = `Confirme o cadastro enviado para ${user.email}.`;
+      $("#emailConfirmText").textContent = user.emailSent
+        ? `Enviamos um e-mail real de confirmação para ${user.email}. Abra o link recebido para ativar a conta.`
+        : `Cadastro criado para ${user.email}. Configure SMTP no servidor para envio real de confirmação.`;
       $("#confirmEmailButton").onclick = async () => {
         if (backendOnline) {
           try {
