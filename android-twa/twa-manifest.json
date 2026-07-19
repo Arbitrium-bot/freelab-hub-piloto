@@ -9,9 +9,9 @@
   "navigationColor": "#062f34",
   "backgroundColor": "#f4f8f7",
   "startUrl": "/index.html",
-  "iconUrl": "https://freelab-hub-app.onrender.com/icon.svg",
-  "maskableIconUrl": "https://freelab-hub-app.onrender.com/icon.svg",
-  "monochromeIconUrl": "https://freelab-hub-app.onrender.com/icon.svg",
+  "iconUrl": "https://freelab-hub-app.onrender.com/app-icon-512.png",
+  "maskableIconUrl": "https://freelab-hub-app.onrender.com/app-icon-maskable-512.png",
+  "monochromeIconUrl": "https://freelab-hub-app.onrender.com/app-icon-512.png",
   "splashScreenFadeOutDuration": 300,
   "signingKey": {
     "path": "./freelab-hub-upload-key.jks",

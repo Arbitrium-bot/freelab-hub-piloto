@@ -1,5 +1,5 @@
-const CACHE_NAME = "freela-b-hub-comercial-v15";
-const ASSETS = ["./", "index.html", "admin.html", "manifest.json", "icon.svg", "freelab-hub-logo.png", "leaflet.css", "leaflet.js", "privacy.html", "terms.html", "delete-account.html"];
+const CACHE_NAME = "freela-b-hub-comercial-v16";
+const ASSETS = ["./", "index.html", "admin.html", "manifest.json", "icon.svg", "freelab-hub-logo.png", "leaflet.css", "leaflet.js", "privacy.html", "terms.html", "delete-account.html", "app-icon-192.png", "app-icon-512.png", "app-icon-maskable-512.png"];
 
 self.addEventListener("install", event => {
   event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(ASSETS)));

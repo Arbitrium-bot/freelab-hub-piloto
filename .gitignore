@@ -8,3 +8,5 @@ __pycache__/
 *.keystore
 android/.gradle/
 android/app/build/
+android/local.properties
+android/build/
