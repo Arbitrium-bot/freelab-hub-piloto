@@ -123,6 +123,7 @@ def default_state():
             },
         ],
         "classifieds": [],
+        "employmentPosts": [],
         "threads": [],
         "externalConnections": [],
         "payments": [],
@@ -195,6 +196,9 @@ def state():
     data = read_state_store()
     data.setdefault("payments", [])
     data.setdefault("auditLog", [])
+    data.setdefault("classifieds", [])
+    data.setdefault("employmentPosts", [])
+    data.setdefault("externalConnections", [])
     for user in data.get("users", []):
         if user.get("password") and not user.get("passwordHash"):
             user["passwordHash"] = password_hash(user.pop("password"))
@@ -407,6 +411,7 @@ def remove_user_data(data, user):
     data["users"] = [item for item in data.get("users", []) if item.get("id") != user_id and item.get("email", "").lower() != email]
     data["threads"] = [thread for thread in data.get("threads", []) if user_id not in thread.get("participants", [])]
     data["classifieds"] = [item for item in data.get("classifieds", []) if item.get("ownerId") != user_id]
+    data["employmentPosts"] = [item for item in data.get("employmentPosts", []) if item.get("ownerId") != user_id]
     data["payments"] = [item for item in data.get("payments", []) if item.get("email", "").lower() != email]
     data["externalConnections"] = [
         item for item in data.get("externalConnections", [])
@@ -521,6 +526,7 @@ class Handler(SimpleHTTPRequestHandler):
             return self.send_json({
                 "users": users,
                 "classifieds": data.get("classifieds", []),
+                "employmentPosts": data.get("employmentPosts", []),
                 "threads": data.get("threads", []),
                 "payments": data.get("payments", []),
                 "deletionRequests": data.get("deletionRequests", []),
@@ -532,6 +538,7 @@ class Handler(SimpleHTTPRequestHandler):
                     "freelancers": len([u for u in users if u.get("role") == "freelancer"]),
                     "blocked": len([u for u in users if u.get("blocked")]),
                     "classifieds": len(data.get("classifieds", [])),
+                    "employmentPosts": len(data.get("employmentPosts", [])),
                     "threads": len(data.get("threads", [])),
                     "payments": len(data.get("payments", [])),
                     "deletionRequests": len(data.get("deletionRequests", [])),
@@ -572,6 +579,10 @@ class Handler(SimpleHTTPRequestHandler):
                     "city": body.get("city", "").strip(),
                     "country": body.get("country", "Brasil"),
                     "address": body.get("address", "").strip(),
+                    "document": body.get("document", "").strip(),
+                    "postalCode": body.get("postalCode", "").strip(),
+                    "region": body.get("region", "").strip(),
+                    "district": body.get("district", "").strip(),
                     "countryCode": body.get("countryCode", "+55"),
                     "email": email,
                     "phone": body.get("phone", "").strip(),
@@ -675,7 +686,7 @@ class Handler(SimpleHTTPRequestHandler):
                 data = state()
                 if "users" in incoming:
                     data["users"] = merge_users(data.get("users", []), incoming.get("users", []))
-                for key in ["classifieds", "threads", "externalConnections", "language"]:
+                for key in ["classifieds", "employmentPosts", "threads", "externalConnections", "language"]:
                     if key in incoming:
                         data[key] = incoming[key]
                 data["sessionEmail"] = current["email"]
@@ -695,10 +706,16 @@ class Handler(SimpleHTTPRequestHandler):
                     return self.send_json({"error": "unauthorized"}, HTTPStatus.UNAUTHORIZED)
                 body = self.json_body()
                 plan = body.get("plan", "freelancer")
-                env_key = "STRIPE_PAYMENT_LINK_LAB" if plan == "lab" else "STRIPE_PAYMENT_LINK_FREELANCER"
-                payment_url = os.environ.get(env_key, "")
+                method = body.get("method", "mercadopago")
+                if method == "pix":
+                    env_key = "PIX_PAYMENT_LINK_LAB" if plan == "lab" else "PIX_PAYMENT_LINK_FREELANCER"
+                elif method == "play":
+                    env_key = "GOOGLE_PLAY_PRODUCT_LAB" if plan == "lab" else "GOOGLE_PLAY_PRODUCT_FREELANCER"
+                else:
+                    env_key = "MERCADO_PAGO_LINK_LAB" if plan == "lab" else "MERCADO_PAGO_LINK_FREELANCER"
+                payment_url = os.environ.get(env_key, "") or os.environ.get("STRIPE_PAYMENT_LINK_LAB" if plan == "lab" else "STRIPE_PAYMENT_LINK_FREELANCER", "")
                 data = state()
-                data.setdefault("payments", []).append({"id": secrets.token_urlsafe(10), "at": now(), "email": current["email"], "plan": plan, "status": "pending_gateway"})
+                data.setdefault("payments", []).append({"id": secrets.token_urlsafe(10), "at": now(), "email": current["email"], "plan": plan, "method": method, "status": "pending_gateway" if not payment_url else "checkout_created"})
                 audit(data, "checkout_attempt", email=current["email"], plan=plan)
                 save_state(data)
                 return self.send_json({"paymentUrl": payment_url, "status": "needs_gateway_key" if not payment_url else "ready"})
@@ -809,6 +826,8 @@ class Handler(SimpleHTTPRequestHandler):
                 item_id = body.get("id")
                 if kind == "classified":
                     data["classifieds"] = [item for item in data.get("classifieds", []) if item.get("id") != item_id]
+                elif kind == "employment":
+                    data["employmentPosts"] = [item for item in data.get("employmentPosts", []) if item.get("id") != item_id]
                 elif kind == "thread":
                     data["threads"] = [item for item in data.get("threads", []) if item.get("id") != item_id]
                 elif kind == "payment":

@@ -124,6 +124,24 @@
       color: white;
       font-weight: 900;
       box-shadow: 0 14px 30px rgba(0, 167, 173, .28);
+      overflow: hidden;
+    }
+
+    .brand-logo {
+      width: 74px;
+      height: 46px;
+      object-fit: contain;
+      border-radius: var(--radius);
+      background: #f4f8f7;
+      border: 1px solid rgba(223, 231, 231, .9);
+      padding: 3px;
+      box-shadow: 0 12px 28px rgba(6, 47, 52, .12);
+    }
+
+    .rail .brand-logo {
+      width: 86px;
+      height: 54px;
+      background: rgba(255,255,255,.94);
     }
 
     .brand-row h2, .brand-row p { margin: 0; }
@@ -384,6 +402,23 @@
       flex-wrap: wrap;
       gap: 6px;
       margin-top: 10px;
+    }
+
+    .listing-meta {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+      margin: 12px 0;
+    }
+
+    .listing-meta span {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #fbfdfd;
+      padding: 8px;
+      color: #314447;
+      font-size: .82rem;
+      line-height: 1.35;
     }
 
     .trust-badge {
@@ -1085,7 +1120,7 @@
       }
 
       main { padding: 18px 12px 32px; }
-      .form-grid, .toolbar, .metrics, .grid, .chat-form, .public-strip, .testimonial-grid, .map-layout { grid-template-columns: 1fr; }
+      .form-grid, .toolbar, .metrics, .grid, .chat-form, .public-strip, .testimonial-grid, .map-layout, .listing-meta { grid-template-columns: 1fr; }
       .phone-row { grid-template-columns: 1fr; }
       .album, .preview { grid-template-columns: repeat(2, 1fr); }
       .bubble { max-width: 100%; }
@@ -1106,7 +1141,7 @@
 
     <div class="auth-card">
       <div class="brand-row">
-        <div class="logo-dot">FL</div>
+        <img class="brand-logo" src="app-icon-512.png" alt="Freela'B Hub">
         <div>
           <h2>Freela'B Hub</h2>
           <p>Marketplace profissional</p>
@@ -1143,12 +1178,19 @@
         <div class="form-grid">
           <label class="wide">Tipo de conta
             <select id="registerRole">
-              <option value="lab">Clínica ou lab procurando freelancer</option>
-              <option value="freelancer">Freelancer oferecendo serviços</option>
+              <option value="lab">Clínica ou laboratório</option>
+              <option value="freelancer">Freelancer protético</option>
+              <option value="supplier">Fornecedor de equipamentos</option>
             </select>
           </label>
           <label>Nome ou empresa
             <input id="registerName" required placeholder="Ex.: Laboratório Alfa">
+          </label>
+          <label>CPF ou CNPJ
+            <input id="registerDocument" required placeholder="Somente números ou formatado">
+          </label>
+          <label>CEP / código postal
+            <input id="registerPostalCode" placeholder="Ex.: 00000-000">
           </label>
           <label>Cidade
             <input id="registerCity" required placeholder="Ex.: São Paulo - SP">
@@ -1156,8 +1198,14 @@
           <label>País
             <select id="registerCountry" required></select>
           </label>
-          <label class="wide">Endereço ou região
-            <input id="registerAddress" required placeholder="Ex.: Vila Mariana, São Paulo">
+          <label>Estado / região
+            <input id="registerRegion" placeholder="Ex.: SP, Lisboa, Califórnia">
+          </label>
+          <label>Bairro
+            <input id="registerDistrict" placeholder="Ex.: Vila Mariana">
+          </label>
+          <label class="wide">Endereço completo
+            <input id="registerAddress" required placeholder="Rua, número, complemento ou região de atendimento">
           </label>
           <label>E-mail
             <input id="registerEmail" type="email" required placeholder="seuemail@email.com">
@@ -1285,7 +1333,7 @@
   <section class="app hidden" id="appScreen">
     <aside class="rail">
       <div class="brand-row">
-        <div class="logo-dot">FL</div>
+        <img class="brand-logo" src="app-icon-512.png" alt="Freela'B Hub">
         <div>
           <h2>Freela'B Hub</h2>
           <p id="roleLabel">Painel</p>
@@ -1307,11 +1355,13 @@
 
       <nav class="nav" id="appNav">
         <button class="active" data-tab="dashboard">Painel <span>01</span></button>
-        <button data-tab="market">Marketplace <span>02</span></button>
-        <button data-tab="messages">Mensagens <span>03</span></button>
-        <button data-tab="map">Mapa <span>04</span></button>
-        <button data-tab="profile">Cadastro <span>05</span></button>
-        <button data-tab="plans">Meu plano <span>06</span></button>
+        <button data-tab="market">Freelas <span>02</span></button>
+        <button data-tab="employment">Vagas & Contratos <span>03</span></button>
+        <button data-tab="classifieds">Equipamentos <span>04</span></button>
+        <button data-tab="messages">Mensagens <span>05</span></button>
+        <button data-tab="map">Mapa <span>06</span></button>
+        <button data-tab="profile">Cadastro <span>07</span></button>
+        <button data-tab="plans">Meu plano <span>08</span></button>
       </nav>
 
       <div class="quota">
@@ -1385,6 +1435,63 @@
         </div>
       </section>
 
+
+      <section class="panel" id="employment">
+        <div class="top">
+          <div>
+            <p class="eyebrow">Vagas & Contratos</p>
+            <h1>Oportunidades fixas, CLT, PJ e contratos de laboratório.</h1>
+            <p>Use esta área para divulgar contratação efetiva, prestação recorrente, jornada, salário e requisitos. Ela fica separada das oportunidades rápidas de freelancer.</p>
+          </div>
+        </div>
+        <div class="form-panel">
+          <form class="box" id="employmentForm">
+            <h2>Publicar vaga ou contrato</h2>
+            <div class="form-grid">
+              <label class="wide">Cargo ou função
+                <input id="employmentTitle" required placeholder="Ex.: Protético ceramista, auxiliar de laboratório">
+              </label>
+              <label>Tipo
+                <select id="employmentType">
+                  <option>CLT</option>
+                  <option>PJ</option>
+                  <option>Contrato por prazo</option>
+                  <option>Temporário</option>
+                  <option>Estágio / auxiliar</option>
+                </select>
+              </label>
+              <label>Modelo
+                <select id="employmentMode">
+                  <option>Presencial</option>
+                  <option>Híbrido</option>
+                  <option>Remoto</option>
+                  <option>Freela recorrente</option>
+                </select>
+              </label>
+              <label>Salário ou faixa
+                <input id="employmentSalary" required placeholder="Ex.: R$ 3.500,00 ou a combinar">
+              </label>
+              <label>Carga horária
+                <input id="employmentSchedule" required placeholder="Ex.: Seg a sex, 8h às 18h">
+              </label>
+              <label>Cidade
+                <input id="employmentCity" required placeholder="Ex.: São Paulo - SP">
+              </label>
+              <label>Benefícios
+                <input id="employmentBenefits" placeholder="VT, VR, comissão, bônus">
+              </label>
+              <label class="wide">Requisitos e descrição
+                <textarea id="employmentDescription" required placeholder="Experiência, materiais, responsabilidades, prazo para candidatura e observações."></textarea>
+              </label>
+            </div>
+            <button class="btn primary" type="submit">Publicar vaga/contrato</button>
+          </form>
+          <div>
+            <div id="employmentList"></div>
+          </div>
+        </div>
+      </section>
+
       <section class="panel" id="messages">
         <div class="top">
           <div>
@@ -1447,13 +1554,25 @@
               <label>Nome ou empresa
                 <input id="profileName" required>
               </label>
+              <label>CPF ou CNPJ
+                <input id="profileDocument" required>
+              </label>
+              <label>CEP / código postal
+                <input id="profilePostalCode">
+              </label>
               <label>Cidade
                 <input id="profileCity" required>
               </label>
               <label>País
                 <select id="profileCountry" required></select>
               </label>
-              <label class="wide">Endereço ou região
+              <label>Estado / região
+                <input id="profileRegion">
+              </label>
+              <label>Bairro
+                <input id="profileDistrict">
+              </label>
+              <label class="wide">Endereço completo
                 <input id="profileAddress" required>
               </label>
               <label>E-mail
@@ -1534,14 +1653,14 @@
       <section class="panel" id="classifieds">
         <div class="top">
           <div>
-            <p class="eyebrow">Classificados</p>
-            <h1>Equipamentos e materiais do setor.</h1>
-            <p>Começa como classificado simples e depois pode virar leilão com lance e prazo.</p>
+            <p class="eyebrow">Equipamentos</p>
+            <h1>Venda equipamentos, materiais e itens de laboratório/clínica.</h1>
+            <p>Área própria para scanner, forno, impressora 3D, articulador, material e mobiliário, separada das vagas de trabalho.</p>
           </div>
         </div>
         <div class="form-panel">
           <form class="box" id="classifiedForm">
-            <h2>Novo classificado</h2>
+            <h2>Novo equipamento ou material</h2>
             <div class="form-grid">
               <label>Título
                 <input id="classTitle" required>
@@ -1560,6 +1679,17 @@
               </label>
               <label>Cidade
                 <input id="classCity" required>
+              </label>
+              <label>Estado do item
+                <select id="classCondition">
+                  <option>Novo</option>
+                  <option>Seminovo</option>
+                  <option>Usado em bom estado</option>
+                  <option>Precisa revisão</option>
+                </select>
+              </label>
+              <label>Marca/modelo
+                <input id="classBrand" placeholder="Ex.: Ivoclar, 3Shape, Exocad">
               </label>
               <label class="wide">Descrição
                 <textarea id="classDescription" required></textarea>
@@ -1593,7 +1723,7 @@
               <span class="chip">Destaque para urgências</span>
             </div>
             <div class="actions">
-              <button class="btn primary" type="button" data-checkout="lab">Ativar plano laboratório</button>
+              <button class="btn primary" type="button" data-checkout="lab" data-method="mercadopago">Pagar com Pix/cartão</button>
             </div>
           </div>
           <div class="box plan-card" data-plan-role="freelancer">
@@ -1607,7 +1737,7 @@
               <span class="chip">Prioridade na busca</span>
             </div>
             <div class="actions">
-              <button class="btn primary" type="button" data-checkout="freelancer">Ativar plano freelancer</button>
+              <button class="btn primary" type="button" data-checkout="freelancer" data-method="mercadopago">Pagar com Pix/cartão</button>
             </div>
           </div>
         </div>
@@ -1736,6 +1866,7 @@
         }
       ],
       classifieds: [],
+      employmentPosts: [],
       threads: [],
       externalConnections: []
     };
@@ -1775,7 +1906,11 @@
             ...user,
             country: user.country || fallback?.country || "",
             address: user.address || fallback?.address || "",
-            countryCode: user.countryCode || fallback?.countryCode || countryFor(user.country)?.dial || "+55"
+            countryCode: user.countryCode || fallback?.countryCode || countryFor(user.country)?.dial || "+55",
+            document: user.document || fallback?.document || "",
+            postalCode: user.postalCode || fallback?.postalCode || "",
+            region: user.region || fallback?.region || "",
+            district: user.district || fallback?.district || ""
           };
         });
         return loaded;
@@ -1801,6 +1936,8 @@
 
     function replaceState(nextState) {
       state = { ...structuredClone(defaults), ...nextState };
+      state.employmentPosts = state.employmentPosts || [];
+      state.classifieds = state.classifieds || [];
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     }
 
@@ -2009,6 +2146,7 @@
       renderMarket();
       renderThreads();
       renderClassifieds();
+      renderEmployment();
       renderPlans();
       renderMap();
       updateQuota();
@@ -2311,6 +2449,55 @@
       document.querySelector('[data-tab="messages"]').click();
     }
 
+
+    function renderEmployment() {
+      state.employmentPosts = state.employmentPosts || [];
+      $("#employmentList").innerHTML = state.employmentPosts.map(item => `
+        <article class="card">
+          <div class="card-head">
+            <div>
+              <h3>${item.title}</h3>
+              <div class="meta">${item.company || userName(item.ownerId)} · ${item.city || ""}</div>
+            </div>
+            <div class="price">${item.salary || "A combinar"}</div>
+          </div>
+          <div class="listing-meta">
+            <span><strong>Tipo</strong><br>${item.type || "Contrato"}</span>
+            <span><strong>Modelo</strong><br>${item.mode || "Presencial"}</span>
+            <span><strong>Carga</strong><br>${item.schedule || "A combinar"}</span>
+          </div>
+          <p class="text"><strong>Benefícios:</strong> ${item.benefits || "A combinar"}<br>${item.description || ""}</p>
+          <div class="actions">
+            <button class="btn primary" data-employment-message="${item.id}">Mensagem interna</button>
+          </div>
+        </article>`).join("") || `<div class="empty">Nenhuma vaga ou contrato publicado ainda.</div>`;
+    }
+
+    function openEmploymentThread(postId) {
+      const item = (state.employmentPosts || []).find(post => post.id === postId);
+      if (!item) return toast("Vaga ou contrato não encontrado.");
+      const me = currentUser();
+      if (item.ownerId === me.id) return toast("Esta vaga foi publicada pelo seu próprio cadastro.");
+      state.threads = state.threads || [];
+      let thread = state.threads.find(entry => entry.employmentId === postId && entry.participants.includes(me.id));
+      if (!thread) {
+        thread = {
+          id: crypto.randomUUID(),
+          participants: [me.id, item.ownerId || "lab-demo"],
+          jobUserId: item.ownerId || "lab-demo",
+          freelancerUserId: me.id,
+          employmentId: postId,
+          classifiedId: "",
+          messages: [{ from: me.id, text: `Olá, vi a vaga/contrato "${item.title}" e gostaria de conversar.`, time: "Agora" }]
+        };
+        state.threads.unshift(thread);
+      }
+      state.activeThread = thread.id;
+      save();
+      renderAll();
+      document.querySelector('[data-tab="messages"]').click();
+    }
+
     function renderClassifieds() {
       $("#classifiedList").innerHTML = state.classifieds.map(item => `
         <article class="card">
@@ -2320,6 +2507,11 @@
               <div class="meta">${item.category} · ${item.city}</div>
             </div>
             <div class="price">${money(item.value)}</div>
+          </div>
+          <div class="listing-meta">
+            <span><strong>Categoria</strong><br>${item.category || "Equipamento"}</span>
+            <span><strong>Estado</strong><br>${item.condition || "Não informado"}</span>
+            <span><strong>Marca/modelo</strong><br>${item.brand || "Não informado"}</span>
           </div>
           <p class="text">${item.description}</p>
           <div class="actions">
@@ -2488,8 +2680,12 @@
         id: crypto.randomUUID(),
         role: $("#registerRole").value,
         name: $("#registerName").value.trim(),
+        document: $("#registerDocument").value.trim(),
+        postalCode: $("#registerPostalCode").value.trim(),
         city: $("#registerCity").value.trim(),
         country: $("#registerCountry").value.trim(),
+        region: $("#registerRegion").value.trim(),
+        district: $("#registerDistrict").value.trim(),
         address: $("#registerAddress").value.trim(),
         email,
         countryCode: $("#registerDialCode").value,
@@ -2579,6 +2775,8 @@
       if (message) openThreadWith(message.dataset.message);
       const classMessage = event.target.closest("[data-class-message]");
       if (classMessage) openClassifiedThread(classMessage.dataset.classMessage);
+      const employmentMessage = event.target.closest("[data-employment-message]");
+      if (employmentMessage) openEmploymentThread(employmentMessage.dataset.employmentMessage);
       const threadButton = event.target.closest("[data-thread]");
       if (threadButton) {
         state.activeThread = threadButton.dataset.thread;
@@ -2595,7 +2793,7 @@
       if (trustBlock) toast("Usuário bloqueado neste piloto.");
       const checkout = event.target.closest("[data-checkout]");
       if (checkout) {
-        api("/api/checkout", { method: "POST", body: JSON.stringify({ plan: checkout.dataset.checkout }) })
+        api("/api/checkout", { method: "POST", body: JSON.stringify({ plan: checkout.dataset.checkout, method: checkout.dataset.method || "mercadopago" }) })
           .then(data => data.paymentUrl ? window.open(data.paymentUrl, "_blank") : toast("Checkout registrado. Configure o link do gateway para cobrar de verdade."))
           .catch(() => toast("Para pagamento real, rode pelo backend e configure o gateway."));
       }
@@ -2655,8 +2853,12 @@
       event.preventDefault();
       const user = currentUser();
       user.name = $("#profileName").value.trim();
+      user.document = $("#profileDocument").value.trim();
+      user.postalCode = $("#profilePostalCode").value.trim();
       user.city = $("#profileCity").value.trim();
       user.country = $("#profileCountry").value.trim();
+      user.region = $("#profileRegion").value.trim();
+      user.district = $("#profileDistrict").value.trim();
       user.address = $("#profileAddress").value.trim();
       user.email = $("#profileEmail").value.trim();
       user.countryCode = $("#profileDialCode").value;
@@ -2703,6 +2905,31 @@
       if (!wasConnected && isConnected(thread)) toast("Contato confirmado: os dois lados responderam.");
     });
 
+
+    $("#employmentForm").addEventListener("submit", event => {
+      event.preventDefault();
+      const me = currentUser();
+      state.employmentPosts = state.employmentPosts || [];
+      state.employmentPosts.unshift({
+        id: crypto.randomUUID(),
+        ownerId: me.id,
+        company: me.name,
+        title: $("#employmentTitle").value.trim(),
+        type: $("#employmentType").value,
+        mode: $("#employmentMode").value,
+        salary: $("#employmentSalary").value.trim(),
+        schedule: $("#employmentSchedule").value.trim(),
+        city: $("#employmentCity").value.trim(),
+        benefits: $("#employmentBenefits").value.trim(),
+        description: $("#employmentDescription").value.trim(),
+        createdAt: new Date().toISOString()
+      });
+      event.target.reset();
+      save();
+      renderAll();
+      toast("Vaga ou contrato publicado.");
+    });
+
     $("#classifiedForm").addEventListener("submit", event => {
       event.preventDefault();
       state.classifieds.unshift({
@@ -2712,7 +2939,10 @@
         value: $("#classValue").value.trim(),
         category: $("#classCategory").value,
         city: $("#classCity").value.trim(),
-        description: $("#classDescription").value.trim()
+        condition: $("#classCondition").value,
+        brand: $("#classBrand").value.trim(),
+        description: $("#classDescription").value.trim(),
+        createdAt: new Date().toISOString()
       });
       event.target.reset();
       save();

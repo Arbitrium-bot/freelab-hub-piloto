@@ -1,67 +1,82 @@
-Freela'B Hub - piloto com backend
+﻿Freela'B Hub - estrutura comercial e producao
+Atualizado em 21/07/2026
 
-Como rodar localmente
+ACESSOS PRINCIPAIS
+Site em producao: https://freelab-hub-app.onrender.com
+Admin: https://freelab-hub-app.onrender.com/admin.html
+Admin padrao: admin@freelabhub.com
+Senha do admin: definida no Environment do Render. Nao salvar senha neste arquivo.
+
+OBJETIVO DO PRODUTO
+Marketplace para conectar proteticos freelancers, clinicas, laboratorios e fornecedores, com cadastro internacional, mapa, mensagens internas, vagas rapidas, vagas fixas/contratos, equipamentos, pagamentos e painel administrativo.
+
+ESTRUTURA PRINCIPAL DO SISTEMA
+1. Login e cadastro real com confirmacao por e-mail/codigo.
+2. Backend Python no Render com PostgreSQL quando DATABASE_URL existe.
+3. Fallback local em JSON na pasta data/ apenas para teste sem PostgreSQL.
+4. Cadastro completo com tipo de conta, CPF/CNPJ, e-mail, telefone internacional, pais, cidade, estado/regiao, bairro, CEP/codigo postal e endereco completo.
+5. Aba Freelas: oportunidades rapidas entre laboratorios/clinicas e proteticos freelancers.
+6. Aba Vagas & Contratos: contratacoes CLT, PJ, temporarias, recorrentes ou estagio/auxiliar, com cargo, salario, carga horaria, cidade, beneficios e requisitos.
+7. Aba Equipamentos: venda de equipamentos, materiais, scanners, impressoras 3D, ferramentas e itens de laboratorio/clinica, com categoria, estado, marca/modelo, valor, cidade e descricao.
+8. Aba Mensagens: conversa interna antes de liberar contato direto.
+9. Aba Mapa: localizacao por pais/cidade/endereco para expansao nacional e internacional.
+10. Aba Cadastro: perfil profissional, documentos, endereco completo, especialidades, fotos e publicacao.
+11. Aba Meu plano: planos para laboratorio/clinica e freelancer, preparado para Pix/cartao via Mercado Pago ou outro gateway.
+12. Admin: usuarios, CPF/CNPJ, endereco completo, equipamentos, vagas/contratos, mensagens, pagamentos, pedidos de exclusao e auditoria.
+
+COMO RODAR LOCALMENTE
 1. Abra o terminal nesta pasta.
-2. Rode:
-   python server.py
-3. App:
-   http://127.0.0.1:8801/
-4. Admin:
-   http://127.0.0.1:8801/admin.html
+2. Rode: python server.py
+3. App local: http://127.0.0.1:8801/
+4. Admin local: http://127.0.0.1:8801/admin.html
 
-Logins de teste
-- Clinica/lab: clinica@demo.com / 123456
-- Freelancer: freelancer@demo.com / 123456
-- Admin: admin@freelabhub.com / admin123456
+LOGINS DE TESTE LOCAL
+Clinica/lab: clinica@demo.com / 123456
+Freelancer: freelancer@demo.com / 123456
+Admin: admin@freelabhub.com / senha definida em ADMIN_PASSWORD
 
-O que agora e real no backend
-- Servidor Python servindo o app e as APIs.
-- Banco PostgreSQL em producao quando DATABASE_URL existe.
-- Fallback em JSON na pasta data/ apenas para teste local sem PostgreSQL.
-- Login com sessao por cookie HttpOnly.
-- Senha guardada com hash PBKDF2.
-- Cadastro via API.
-- Confirmacao de e-mail real por HTTPS/Resend quando RESEND_API_KEY esta configurada, com SMTP como alternativa fora do plano free do Render.
-- Recuperacao de senha real por e-mail com token de 1 hora.
-- Estado do marketplace salvo no backend.
-- Painel admin separado para ver usuarios, verificar e bloquear.
-- Pagamentos registrados no backend.
-- Checkout preparado para receber links reais do Stripe ou gateway equivalente.
-- Geocodificacao preparada por OpenStreetMap/Nominatim para salvar latitude e longitude quando o backend estiver online.
+VARIAVEIS DO RENDER
+HOST=0.0.0.0
+PYTHON_VERSION=3.11.9
+DATABASE_URL=criada automaticamente pelo PostgreSQL do Render
+APP_BASE_URL=https://freelab-hub-app.onrender.com
+ADMIN_EMAIL=admin@freelabhub.com
+ADMIN_PASSWORD=defina_uma_senha_forte_no_Render
 
-Variaveis criadas pelo render.yaml
-- HOST=0.0.0.0
-- PYTHON_VERSION=3.11.9
-- DATABASE_URL=e criada automaticamente pelo banco freelab-hub-db no render.yaml
-- APP_BASE_URL=https://freelab-hub-app.onrender.com
-- ADMIN_EMAIL=admin@freelabhub.com
-- ADMIN_PASSWORD=defina_uma_senha_forte
+EMAIL REAL
+Preferir RESEND_API_KEY/RESEND_FROM para producao. SMTP tambem funciona quando o plano/host permitir conexao externa.
+RESEND_API_KEY=chave_api_do_resend
+RESEND_FROM=Freela'B Hub <remetente_verificado>
+SMTP_HOST=servidor SMTP
+SMTP_PORT=587
+SMTP_TLS=true
+SMTP_SSL=false
+SMTP_USER=usuario SMTP
+SMTP_PASSWORD=senha SMTP ou senha de app
+SMTP_FROM=e-mail remetente
 
-Variaveis para adicionar depois no Environment do Render, quando quiser ativar e-mail real e pagamento:
-- RESEND_API_KEY=chave_api_do_resend_para_envio_por_https
-- RESEND_FROM=Freela'B Hub <onboarding@resend.dev> ou remetente verificado
-- SMTP_HOST=servidor SMTP do e-mail
-- SMTP_PORT=587
-- SMTP_TLS=true
-- SMTP_SSL=false
-- SMTP_USER=usuario SMTP
-- SMTP_PASSWORD=senha SMTP
-- SMTP_FROM=e-mail remetente
-- STRIPE_PAYMENT_LINK_LAB=link_real_do_plano_lab
-- STRIPE_PAYMENT_LINK_FREELANCER=link_real_do_plano_freelancer
+PAGAMENTO
+Para web: Mercado Pago como primeira opcao para Pix/cartao/boleto, com variaveis MERCADO_PAGO_LINK_LAB e MERCADO_PAGO_LINK_FREELANCER. O backend tambem aceita PIX_PAYMENT_LINK_LAB, PIX_PAYMENT_LINK_FREELANCER e fallback para STRIPE_PAYMENT_LINK_LAB/STRIPE_PAYMENT_LINK_FREELANCER.
+Para app Play Store: evitar checkout externo dentro do app se for assinatura/recurso digital. Usar Google Play Billing para assinatura no app, conforme politica da Play.
+Sem links/chaves de gateway, o app registra a tentativa de pagamento no admin e retorna needs_gateway_key.
 
-Observacao
-Para o e-mail real funcionar no Render Free, prefira RESEND_API_KEY e RESEND_FROM, porque o Render Free pode bloquear saida SMTP para smtp.gmail.com nas portas 465/587 com erro Network is unreachable. Depois clique em Save Changes/Manual Deploy. O painel admin mostra o envio configurado quando a configuracao basica existe.
+POSTGRESQL NO RENDER
+O render.yaml define o banco freelab-hub-db. Ao criar/sincronizar o Blueprint no Render, se esse banco nao existir, o Render cria o PostgreSQL e injeta DATABASE_URL no web service Python.
 
-Para pagamento 100% real e necessario configurar uma conta de gateway, criar os links/checkout dos planos e preencher as variaveis no Render. Sem essas chaves, o app registra a tentativa e avisa que falta configurar o gateway.
+PROMPT COMPLETO PARA CONTINUAR O PROJETO
+"Voce esta trabalhando no projeto Freela'B Hub, um marketplace comercial para proteticos freelancers, clinicas, laboratorios e fornecedores. O projeto precisa ser robusto para producao, Play Store e divulgacao em redes/grupos. Preserve identidade visual com logo real, backend Python/PostgreSQL no Render, confirmacao de e-mail, admin separado e dados persistentes. Evolua o sistema com cadastro completo CPF/CNPJ/endereco, aba Freelas para oportunidades rapidas, aba Vagas & Contratos para CLT/PJ/temporario/contrato recorrente com salario e carga horaria, aba Equipamentos para compra/venda de itens odontologicos, mapa internacional, mensagens internas, moderacao, pagamentos reais e painel admin completo. Sempre validar mobile, evitar quebrar login/sessao, atualizar service worker, commit/push no GitHub e registrar decisoes neste LEIA-ME."
 
-PostgreSQL no Render
-O arquivo render.yaml define o banco freelab-hub-db. Ao criar/sincronizar o Blueprint no Render, se esse banco nao existir, o Render cria o PostgreSQL e injeta DATABASE_URL no web service Python.
+PLANO DE ATAQUE DE DIVULGACAO
+Fase 1 - Preparacao: concluir cadastros, vagas/contratos, equipamentos, pagamentos, admin e paginas legais. Criar prints, video curto e textos de convite.
+Fase 2 - Comunidade: listar grupos de Facebook, WhatsApp, Instagram, APDESP, escolas tecnicas, fornecedores, laboratorios e paginas de vagas. Entrar com abordagem de teste/convite, sem spam.
+Fase 3 - Lancamento: captar os primeiros 50 a 100 usuarios com plano fundador gratuito/bonificado, publicar depoimentos e cidades no mapa.
+Fase 4 - Conversao: ativar planos pagos, destacar laboratorios com vagas reais, freelancers com portfolio e fornecedores com equipamentos.
+Fase 5 - Escala: anuncios segmentados, parcerias com cursos/laboratorios, landing page de vendas e acompanhamento semanal de metricas no admin.
 
-Importante sobre falha no Render
-O Blueprint agora pede so a senha do admin durante a criacao. As configuracoes de SMTP e Stripe ficam fora do render.yaml para nao bloquear o primeiro deploy se algum segredo estiver vazio.
-
-O projeto antigo era static_site. O Render pode falhar se tentar transformar esse servico estatico em web service Python com o mesmo nome. Por isso o render.yaml agora cria o servico novo freelab-hub-app. Use:
-https://freelab-hub-app.onrender.com
-
-Depois que o novo web service estiver funcionando, o servico estatico antigo pode ser removido ou deixado apenas como historico.
+PROXIMAS MELHORIAS RECOMENDADAS
+1. Implementar Mercado Pago API/webhook real para confirmar pagamentos automaticamente.
+2. Implementar Google Play Billing no Android antes da publicacao paga na Play Store.
+3. Criar painel de denuncias, avaliacoes e verificacao documental.
+4. Criar busca avancada por distancia, especialidade, salario e tipo de contrato.
+5. Criar landing page publica especifica para divulgacao.
+6. Revisar termos/privacidade com profissional juridico antes de escala paga.

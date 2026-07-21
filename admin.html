@@ -75,7 +75,8 @@
       <nav class="tabs" id="tabs">
         <button class="active" data-panel="overview">Visao geral</button>
         <button data-panel="users">Usuarios</button>
-        <button data-panel="ads">Anuncios</button>
+        <button data-panel="ads">Equipamentos</button>
+        <button data-panel="employment">Vagas & Contratos</button>
         <button data-panel="threads">Mensagens</button>
         <button data-panel="payments">Pagamentos</button>
         <button data-panel="deletions">Exclusões</button>
@@ -103,6 +104,13 @@
         <div class="box">
           <h2>Anuncios e classificados</h2>
           <div id="adsTable"></div>
+        </div>
+      </section>
+
+      <section class="panel" id="employment">
+        <div class="box">
+          <h2>Vagas & Contratos</h2>
+          <div id="employmentTable"></div>
         </div>
       </section>
 
@@ -137,7 +145,7 @@
   </main>
 
   <script>
-    let snapshot = { users: [], classifieds: [], threads: [], payments: [], deletionRequests: [], auditLog: [], metrics: {} };
+    let snapshot = { users: [], classifieds: [], employmentPosts: [], threads: [], payments: [], deletionRequests: [], auditLog: [], metrics: {} };
 
     async function api(path, options = {}) {
       const response = await fetch(path, {
@@ -181,6 +189,7 @@
       renderOverview();
       renderUsers();
       renderAds();
+      renderEmployment();
       renderThreads();
       renderPayments();
       renderDeletions();
@@ -216,8 +225,8 @@
           <thead><tr><th>Perfil</th><th>Localizacao</th><th>Status</th><th>Controle</th></tr></thead>
           <tbody>${currentUsers().map(user => `
             <tr>
-              <td><strong>${user.name}</strong><br>${user.email}<br>${user.role === "lab" ? "Clinica/lab" : "Freelancer"}</td>
-              <td>${user.address || ""}<br>${user.city || ""}, ${user.country || ""}<br>${user.countryCode || ""} ${user.phone || ""}</td>
+              <td><strong>${user.name}</strong><br>${user.email}<br>CPF/CNPJ: ${user.document || "-"}<br>${user.role === "lab" ? "Clinica/lab" : user.role === "supplier" ? "Fornecedor" : "Freelancer"}</td>
+              <td>${user.address || ""}<br>${user.district || ""} ${user.city || ""}, ${user.region || ""} ${user.country || ""}<br>CEP: ${user.postalCode || "-"}<br>${user.countryCode || ""} ${user.phone || ""}</td>
               <td>${tag(user.verified ? "Verificado" : "Pendente", user.verified ? "ok" : "warn")} ${tag(user.blocked ? "Bloqueado" : "Ativo", user.blocked ? "bad" : "ok")}</td>
               <td>
                 <div class="actions">
@@ -233,18 +242,31 @@
     }
 
     function renderAds() {
-      const ads = snapshot.users.filter(user => user.adTitle).map(user => ({ kind: "perfil", owner: user.name, id: user.id, title: user.adTitle, city: user.city, text: user.adDescription || user.bio || "" }));
-      const classifieds = snapshot.classifieds.map(item => ({ kind: "classified", owner: userName(item.ownerId || ""), id: item.id, title: item.title, city: item.city, text: item.description || "" }));
+      const classifieds = snapshot.classifieds.map(item => ({ owner: userName(item.ownerId || ""), id: item.id, title: item.title, city: item.city, text: item.description || "", category: item.category, condition: item.condition, brand: item.brand, value: item.value }));
       document.querySelector("#adsTable").innerHTML = `
         <table>
-          <thead><tr><th>Tipo</th><th>Anuncio</th><th>Local</th><th>Controle</th></tr></thead>
-          <tbody>${[...ads, ...classifieds].map(item => `
+          <thead><tr><th>Equipamento</th><th>Detalhes</th><th>Local</th><th>Controle</th></tr></thead>
+          <tbody>${classifieds.map(item => `
             <tr>
-              <td>${tag(item.kind === "classified" ? "Classificado" : "Perfil")}</td>
-              <td><strong>${item.title || "Sem titulo"}</strong><br>${item.owner}<br><span class="muted">${item.text}</span></td>
+              <td><strong>${item.title || "Sem titulo"}</strong><br>${item.owner}<br>${tag(item.category || "Equipamento")}</td>
+              <td>${item.brand || ""}<br>${item.condition || ""}<br>${item.value || ""}<br><span class="muted">${item.text}</span></td>
               <td>${item.city || "-"}</td>
-              <td>${item.kind === "classified" ? `<button class="danger" data-content-kind="classified" data-id="${item.id}">Remover</button>` : `<button class="ghost" data-open-user="${item.id}">Ver usuario</button>`}</td>
-            </tr>`).join("") || `<tr><td colspan="4">Nenhum anuncio ainda.</td></tr>`}</tbody>
+              <td><button class="danger" data-content-kind="classified" data-id="${item.id}">Remover</button></td>
+            </tr>`).join("") || `<tr><td colspan="4">Nenhum equipamento anunciado ainda.</td></tr>`}</tbody>
+        </table>`;
+    }
+
+    function renderEmployment() {
+      document.querySelector("#employmentTable").innerHTML = `
+        <table>
+          <thead><tr><th>Vaga/contrato</th><th>Condições</th><th>Descrição</th><th>Controle</th></tr></thead>
+          <tbody>${(snapshot.employmentPosts || []).map(item => `
+            <tr>
+              <td><strong>${item.title || "Sem titulo"}</strong><br>${item.company || userName(item.ownerId || "")}<br>${item.city || ""}</td>
+              <td>${tag(item.type || "Contrato", "warn")} ${tag(item.mode || "Presencial")}<br>Salário: ${item.salary || "A combinar"}<br>Carga: ${item.schedule || "A combinar"}<br>Benefícios: ${item.benefits || "-"}</td>
+              <td><span class="muted">${item.description || ""}</span></td>
+              <td><button class="danger" data-content-kind="employment" data-id="${item.id}">Remover</button></td>
+            </tr>`).join("") || `<tr><td colspan="4">Nenhuma vaga ou contrato publicado.</td></tr>`}</tbody>
         </table>`;
     }
 
@@ -270,7 +292,7 @@
             <tr>
               <td>${fmtTime(payment.at)}</td>
               <td>${payment.email || "-"}</td>
-              <td>${payment.plan || "-"}</td>
+              <td>${payment.plan || "-"}<br>${payment.method || "gateway"}</td>
               <td>${tag(payment.status || "pendente", payment.status === "paid" ? "ok" : "warn")}</td>
               <td>
                 <div class="actions">
