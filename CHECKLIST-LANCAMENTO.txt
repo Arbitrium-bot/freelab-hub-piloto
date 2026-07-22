@@ -1,0 +1,65 @@
+Freela'B Hub - Checklist de lançamento e homologação
+Atualizado em 22/07/2026
+
+OBJETIVO
+Validar o app com poucos usuários reais antes de divulgar em grupos grandes. O foco é descobrir travas de cadastro, e-mail, mobile, mensagens, moderação e usabilidade.
+
+GRUPO DE TESTE FECHADO
+- 2 clínicas ou laboratórios.
+- 2 protéticos freelancers.
+- 1 fornecedor ou pessoa anunciando equipamento/material.
+- 1 administrador acompanhando tudo pelo painel admin.
+
+ROTEIRO DO TESTE COMO USUÁRIO
+1. Abrir o site/app no celular.
+2. Criar cadastro novo com e-mail real.
+3. Confirmar e-mail pelo código recebido.
+4. Fazer login e atualizar a página com F5/reabrir o app.
+5. Completar perfil: CPF/CNPJ, telefone, país, cidade, região, bairro, endereço, bio e especialidades.
+6. Publicar oportunidade em Freelas ou serviço profissional.
+7. Publicar uma vaga em Vagas & Contratos.
+8. Publicar um equipamento/material.
+9. Usar filtros por país, cidade, especialidade, tipo de vaga e equipamento.
+10. Enviar mensagem interna para outro usuário.
+11. Conferir se notificação por e-mail chegou.
+12. Testar denúncia em perfil, vaga ou equipamento.
+13. Testar mapa e abertura do endereço.
+14. Testar logout e novo login.
+15. Testar no celular: botões, textos, rolagem, cadastro e mensagens.
+
+ROTEIRO DO ADMIN
+1. Entrar em /admin.html.
+2. Conferir usuários novos.
+3. Verificar usuário manualmente quando necessário.
+4. Bloquear e desbloquear um usuário de teste.
+5. Filtrar usuários por perfil e status.
+6. Conferir vagas, equipamentos e mensagens.
+7. Abrir aba Moderação.
+8. Colocar denúncia em análise.
+9. Concluir denúncia.
+10. Conferir aba Homologação.
+11. Conferir Auditoria para login, cadastro, salvamento, denúncia e notificação.
+12. Remover conteúdo de teste se necessário.
+
+CRITÉRIO PARA LIBERAR DIVULGAÇÃO LEVE
+- Pelo menos 5 usuários verificados.
+- Pelo menos 1 vaga/contrato publicada.
+- Pelo menos 1 equipamento/material publicado.
+- Pelo menos 1 conversa interna funcionando.
+- E-mail de confirmação funcionando.
+- Recuperação de senha testada.
+- Admin consegue bloquear, verificar, remover conteúdo e moderar denúncia.
+- Mobile sem banner cortado de forma crítica e cadastro legível.
+- F5/reabrir app não derruba sessão inesperadamente.
+
+ANOTAÇÕES PARA OS TESTADORES
+Peça para cada pessoa responder:
+- Conseguiu cadastrar sem ajuda?
+- O e-mail chegou rápido?
+- Onde ficou confuso?
+- Qual botão ou aba não entendeu?
+- Usaria para encontrar trabalho, profissional ou equipamento?
+- O que impediria de indicar para outro protético/laboratório?
+
+PRÓXIMO PASSO APÓS HOMOLOGAÇÃO
+Corrigir os pontos relatados, fazer novo deploy e iniciar divulgação como teste fundador em grupos selecionados, sem anúncio massivo ainda.

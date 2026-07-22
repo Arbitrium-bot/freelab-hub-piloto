@@ -93,3 +93,9 @@ BLOCO IMPLEMENTADO EM 22/07/2026 - SEGURANCA, ADMIN, MODERACAO, FILTROS, USABILI
 - Vagas & Contratos e Equipamentos receberam filtros especificos.
 - App mostra painel de completude do perfil e bloqueio local de usuario para ocultar perfis indesejados.
 - Notificacoes por e-mail foram preparadas via /api/notify para novas mensagens/interesses quando e-mail real estiver configurado.
+
+
+BLOCO IMPLEMENTADO EM 22/07/2026 - HOMOLOGACAO
+- Criado CHECKLIST-LANCAMENTO.txt com roteiro de teste fechado para usuarios reais.
+- Admin recebeu aba Homologacao com checklist calculado pelos dados atuais: usuarios verificados, labs, freelancers, fornecedores, vagas, equipamentos, mensagens, denuncias, notificacoes e e-mail configurado.
+- Service worker atualizado para nova versao de cache.
