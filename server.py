@@ -126,6 +126,8 @@ def default_state():
         "employmentPosts": [],
         "threads": [],
         "externalConnections": [],
+        "reports": [],
+        "notifications": [],
         "payments": [],
         "auditLog": [],
     }
@@ -199,6 +201,8 @@ def state():
     data.setdefault("classifieds", [])
     data.setdefault("employmentPosts", [])
     data.setdefault("externalConnections", [])
+    data.setdefault("reports", [])
+    data.setdefault("notifications", [])
     for user in data.get("users", []):
         if user.get("password") and not user.get("passwordHash"):
             user["passwordHash"] = password_hash(user.pop("password"))
@@ -245,6 +249,9 @@ def public_user(user):
     clean.pop("password", None)
     clean.pop("passwordHash", None)
     clean.pop("emailToken", None)
+    clean.pop("passwordResetToken", None)
+    clean.pop("passwordResetExpires", None)
+    clean.pop("lastVerificationEmailAt", None)
     return clean
 
 
@@ -253,6 +260,125 @@ def public_state(data, email=""):
     clean["users"] = [public_user(user) for user in data.get("users", []) if not user.get("blocked")]
     clean["sessionEmail"] = email or clean.get("sessionEmail", "")
     return clean
+
+
+def normalize_digits(value):
+    return "".join(ch for ch in str(value or "") if ch.isdigit())
+
+
+def valid_document(value):
+    digits = normalize_digits(value)
+    return len(digits) in (11, 14)
+
+
+def valid_phone(value):
+    digits = normalize_digits(value)
+    return 8 <= len(digits) <= 15
+
+
+def event_count(data, event_type, email="", seconds=900):
+    cutoff = now() - seconds
+    return sum(1 for item in data.get("auditLog", []) if item.get("type") == event_type and item.get("email", "").lower() == email.lower() and int(item.get("at", 0)) >= cutoff)
+
+
+def rate_limited(data, event_type, email="", limit=5, seconds=900):
+    return event_count(data, event_type, email, seconds) >= limit
+
+
+def current_user_from_session(data, current):
+    if not current:
+        return None
+    email = current.get("email", "").lower()
+    return next((u for u in data.get("users", []) if u.get("email", "").lower() == email), None)
+
+
+def merge_current_user(existing_users, incoming_users, current_email):
+    by_id = {u.get("id"): u for u in incoming_users if u.get("id")}
+    by_email = {u.get("email", "").lower(): u for u in incoming_users if u.get("email")}
+    result = []
+    for user in existing_users:
+        if user.get("email", "").lower() != current_email.lower():
+            result.append(user)
+            continue
+        incoming = by_id.get(user.get("id")) or by_email.get(current_email.lower()) or {}
+        allowed = ["name", "document", "postalCode", "city", "country", "region", "district", "address", "countryCode", "phone", "avatar", "specialties", "bio", "adTitle", "adSpecialty", "adValue", "adElements", "adDescription", "album", "lat", "lng"]
+        updated = dict(user)
+        for key in allowed:
+            if key in incoming:
+                updated[key] = incoming[key]
+        result.append(updated)
+    return result
+
+
+def merge_owned_items(existing, incoming, owner_id, allowed_keys):
+    incoming_by_id = {item.get("id"): item for item in incoming if item.get("id")}
+    used = set()
+    result = []
+    for item in existing:
+        if item.get("ownerId") != owner_id:
+            result.append(item)
+            continue
+        incoming_item = incoming_by_id.get(item.get("id"))
+        if not incoming_item:
+            result.append(item)
+            continue
+        updated = dict(item)
+        for key in allowed_keys:
+            if key in incoming_item:
+                updated[key] = incoming_item[key]
+        updated["ownerId"] = owner_id
+        result.append(updated)
+        used.add(item.get("id"))
+    for item in incoming:
+        if item.get("id") in used or item.get("ownerId") != owner_id:
+            continue
+        clean = {key: item.get(key, "") for key in allowed_keys}
+        clean["id"] = item.get("id") or secrets.token_urlsafe(10)
+        clean["ownerId"] = owner_id
+        result.insert(0, clean)
+    return result
+
+
+def merge_participant_threads(existing, incoming, user_id):
+    incoming_by_id = {thread.get("id"): thread for thread in incoming if thread.get("id")}
+    used = set()
+    result = []
+    for thread in existing:
+        participants = thread.get("participants", [])
+        if user_id not in participants:
+            result.append(thread)
+            continue
+        incoming_thread = incoming_by_id.get(thread.get("id"))
+        if incoming_thread and user_id in incoming_thread.get("participants", []):
+            clean = dict(thread)
+            clean["messages"] = incoming_thread.get("messages", thread.get("messages", []))[-200:]
+            for key in ["active", "classifiedId", "employmentId", "jobUserId", "freelancerUserId"]:
+                if key in incoming_thread:
+                    clean[key] = incoming_thread[key]
+            result.append(clean)
+            used.add(thread.get("id"))
+        else:
+            result.append(thread)
+    for thread in incoming:
+        if thread.get("id") in used or user_id not in thread.get("participants", []):
+            continue
+        clean = dict(thread)
+        clean["id"] = clean.get("id") or secrets.token_urlsafe(10)
+        clean["messages"] = clean.get("messages", [])[-200:]
+        result.insert(0, clean)
+    return result
+
+
+def send_notification_email(data, to_user, subject, text, event_type="notification_email"):
+    if not to_user or not to_user.get("email") or not email_ready():
+        return False
+    try:
+        sent = send_email(to_user["email"], subject, text)
+        audit(data, event_type + ("_sent" if sent else "_not_configured"), email=to_user.get("email", ""))
+        return sent
+    except Exception as exc:
+        audit(data, event_type + "_failed", email=to_user.get("email", ""), error=str(exc)[:160])
+        return False
 
 
 def sessions():
@@ -452,6 +578,11 @@ def email_ready():
     return bool(RESEND_API_KEY and RESEND_FROM) or bool(SMTP_HOST and SMTP_FROM)
 
 
+def session_cookie(name, token):
+    secure = "; Secure" if APP_BASE_URL.startswith("https://") else ""
+    return f"{name}={token}; Path=/; HttpOnly; SameSite=Lax; Max-Age={SESSION_TTL}{secure}"
+
+
 class Handler(SimpleHTTPRequestHandler):
     server_version = "FreelaBHub/1.0"
 
@@ -509,7 +640,7 @@ class Handler(SimpleHTTPRequestHandler):
                 return
             session_token = mark_email_verified(data, user, "verify_email_link")
             self.send_response(HTTPStatus.FOUND)
-            self.send_header("Set-Cookie", f"freelab_session={session_token}; Path=/; HttpOnly; SameSite=Lax; Max-Age={SESSION_TTL}")
+            self.send_header("Set-Cookie", session_cookie("freelab_session", session_token))
             self.send_header("Location", "/?verified=ok")
             self.end_headers()
             return
@@ -517,7 +648,11 @@ class Handler(SimpleHTTPRequestHandler):
             current = self.current_session()
             if not current:
                 return self.send_json({"error": "unauthorized"}, HTTPStatus.UNAUTHORIZED)
-            return self.send_json({"state": public_state(state(), current["email"])})
+            data = state()
+            user = current_user_from_session(data, current)
+            if not user or user.get("blocked") or not user.get("verified"):
+                return self.send_json({"error": "forbidden"}, HTTPStatus.FORBIDDEN)
+            return self.send_json({"state": public_state(data, current["email"])})
         if parsed.path == "/api/admin/summary":
             if not self.current_admin():
                 return self.send_json({"error": "admin_required"}, HTTPStatus.UNAUTHORIZED)
@@ -530,7 +665,9 @@ class Handler(SimpleHTTPRequestHandler):
                 "threads": data.get("threads", []),
                 "payments": data.get("payments", []),
                 "deletionRequests": data.get("deletionRequests", []),
-                "auditLog": data.get("auditLog", [])[-100:],
+                "reports": data.get("reports", []),
+                "notifications": data.get("notifications", [])[-100:],
+                "auditLog": data.get("auditLog", [])[-150:],
                 "emailConfigured": email_ready(),
                 "metrics": {
                     "users": len(users),
@@ -542,6 +679,9 @@ class Handler(SimpleHTTPRequestHandler):
                     "threads": len(data.get("threads", [])),
                     "payments": len(data.get("payments", [])),
                     "deletionRequests": len(data.get("deletionRequests", [])),
+                    "reports": len(data.get("reports", [])),
+                    "openReports": len([r for r in data.get("reports", []) if r.get("status", "open") != "done"]),
+                    "notifications": len(data.get("notifications", [])),
                 },
             })
         return super().do_GET()
@@ -554,6 +694,8 @@ class Handler(SimpleHTTPRequestHandler):
                 email = body.get("email", "").strip().lower()
                 data = state()
                 user = next((u for u in data.get("users", []) if u.get("email", "").lower() == email), None)
+                if rate_limited(data, "login_failed", email, limit=8, seconds=900):
+                    return self.send_json({"error": "too_many_attempts"}, HTTPStatus.TOO_MANY_REQUESTS)
                 if not user or user.get("blocked") or not password_ok(body.get("password", ""), user.get("passwordHash")):
                     audit(data, "login_failed", email=email)
                     save_state(data)
@@ -564,14 +706,23 @@ class Handler(SimpleHTTPRequestHandler):
                 data["sessionEmail"] = email
                 audit(data, "login", email=email)
                 save_state(data)
-                cookie = f"freelab_session={token}; Path=/; HttpOnly; SameSite=Lax; Max-Age={SESSION_TTL}"
+                cookie = session_cookie("freelab_session", token)
                 return self.send_json({"state": public_state(data, email), "user": public_user(user)}, cookie=cookie)
             if parsed.path == "/api/register":
                 body = self.json_body()
                 data = state()
                 email = body.get("email", "").strip().lower()
+                if rate_limited(data, "register_attempt", email or self.client_address[0], limit=6, seconds=3600):
+                    return self.send_json({"error": "too_many_attempts"}, HTTPStatus.TOO_MANY_REQUESTS)
+                audit(data, "register_attempt", email=email or self.client_address[0])
                 if not email or any(u.get("email", "").lower() == email for u in data.get("users", [])):
                     return self.send_json({"error": "email_exists"}, HTTPStatus.CONFLICT)
+                if len(body.get("password", "")) < 6:
+                    return self.send_json({"error": "weak_password"}, HTTPStatus.BAD_REQUEST)
+                if not valid_document(body.get("document", "")):
+                    return self.send_json({"error": "invalid_document"}, HTTPStatus.BAD_REQUEST)
+                if not valid_phone(body.get("phone", "")):
+                    return self.send_json({"error": "invalid_phone"}, HTTPStatus.BAD_REQUEST)
                 user = {
                     "id": body.get("id") or secrets.token_urlsafe(12),
                     "role": body.get("role", "freelancer"),
@@ -624,7 +775,7 @@ class Handler(SimpleHTTPRequestHandler):
                 if not user:
                     return self.send_json({"error": "not_found"}, HTTPStatus.NOT_FOUND)
                 token = mark_email_verified(data, user, "verify_email")
-                cookie = f"freelab_session={token}; Path=/; HttpOnly; SameSite=Lax; Max-Age={SESSION_TTL}"
+                cookie = session_cookie("freelab_session", token)
                 return self.send_json({"state": public_state(data, user["email"])}, cookie=cookie)
             if parsed.path == "/api/resend-verification":
                 body = self.json_body()
@@ -634,6 +785,8 @@ class Handler(SimpleHTTPRequestHandler):
                     return self.send_json({"error": "not_found"}, HTTPStatus.NOT_FOUND)
                 if user.get("verified"):
                     return self.send_json({"ok": True, "alreadyVerified": True})
+                if rate_limited(data, "verification_email_resent", user["email"], limit=4, seconds=900):
+                    return self.send_json({"error": "too_many_attempts"}, HTTPStatus.TOO_MANY_REQUESTS)
                 try:
                     sent = send_verification_email(user)
                     audit(data, "verification_email_resent" if sent else "verification_email_not_configured", email=user["email"])
@@ -648,6 +801,8 @@ class Handler(SimpleHTTPRequestHandler):
                 data = state()
                 email = body.get("email", "").strip().lower()
                 user = next((u for u in data.get("users", []) if u.get("email", "").lower() == email), None)
+                if rate_limited(data, "password_reset_email_sent", email, limit=4, seconds=900):
+                    return self.send_json({"error": "too_many_attempts"}, HTTPStatus.TOO_MANY_REQUESTS)
                 if user:
                     try:
                         sent = send_password_reset_email(user)
@@ -684,13 +839,24 @@ class Handler(SimpleHTTPRequestHandler):
                 body = self.json_body()
                 incoming = body.get("state", {})
                 data = state()
+                current_user = current_user_from_session(data, current)
+                if not current_user or current_user.get("blocked") or not current_user.get("verified"):
+                    return self.send_json({"error": "forbidden"}, HTTPStatus.FORBIDDEN)
                 if "users" in incoming:
-                    data["users"] = merge_users(data.get("users", []), incoming.get("users", []))
-                for key in ["classifieds", "employmentPosts", "threads", "externalConnections", "language"]:
-                    if key in incoming:
-                        data[key] = incoming[key]
+                    data["users"] = merge_current_user(data.get("users", []), incoming.get("users", []), current["email"])
+                owner_id = current_user.get("id")
+                if "classifieds" in incoming:
+                    data["classifieds"] = merge_owned_items(data.get("classifieds", []), incoming.get("classifieds", []), owner_id, ["id", "ownerId", "title", "value", "category", "city", "condition", "brand", "description", "createdAt", "status"])
+                if "employmentPosts" in incoming:
+                    data["employmentPosts"] = merge_owned_items(data.get("employmentPosts", []), incoming.get("employmentPosts", []), owner_id, ["id", "ownerId", "company", "title", "type", "mode", "salary", "schedule", "city", "benefits", "description", "createdAt", "status"])
+                if "threads" in incoming:
+                    data["threads"] = merge_participant_threads(data.get("threads", []), incoming.get("threads", []), owner_id)
+                if "externalConnections" in incoming:
+                    data["externalConnections"] = incoming.get("externalConnections", [])
+                if "language" in incoming:
+                    data["language"] = incoming.get("language")
                 data["sessionEmail"] = current["email"]
-                audit(data, "state_save", email=current["email"])
+                audit(data, "state_save", email=current["email"], users=len(data.get("users", [])), threads=len(data.get("threads", [])))
                 save_state(data)
                 return self.send_json({"ok": True, "state": public_state(data, current["email"])})
             if parsed.path == "/api/geocode":
@@ -700,6 +866,50 @@ class Handler(SimpleHTTPRequestHandler):
                 except Exception:
                     result = None
                 return self.send_json({"location": result})
+            if parsed.path == "/api/report":
+                current = self.current_session()
+                if not current:
+                    return self.send_json({"error": "unauthorized"}, HTTPStatus.UNAUTHORIZED)
+                body = self.json_body()
+                data = state()
+                reporter = current_user_from_session(data, current)
+                if not reporter or reporter.get("blocked") or not reporter.get("verified"):
+                    return self.send_json({"error": "forbidden"}, HTTPStatus.FORBIDDEN)
+                if rate_limited(data, "report_created", reporter.get("email", ""), limit=10, seconds=3600):
+                    return self.send_json({"error": "too_many_attempts"}, HTTPStatus.TOO_MANY_REQUESTS)
+                report = {
+                    "id": secrets.token_urlsafe(10),
+                    "at": now(),
+                    "reporterId": reporter.get("id"),
+                    "reporterEmail": reporter.get("email"),
+                    "targetId": body.get("targetId", ""),
+                    "targetKind": body.get("targetKind", "user"),
+                    "reason": body.get("reason", "").strip()[:600],
+                    "status": "open",
+                }
+                data.setdefault("reports", []).append(report)
+                audit(data, "report_created", email=reporter.get("email", ""), id=report["id"], kind=report["targetKind"])
+                save_state(data)
+                return self.send_json({"ok": True, "report": report})
+            if parsed.path == "/api/notify":
+                current = self.current_session()
+                if not current:
+                    return self.send_json({"error": "unauthorized"}, HTTPStatus.UNAUTHORIZED)
+                body = self.json_body()
+                data = state()
+                sender = current_user_from_session(data, current)
+                target = next((u for u in data.get("users", []) if u.get("id") == body.get("targetId")), None)
+                if not sender or sender.get("blocked") or not sender.get("verified"):
+                    return self.send_json({"error": "forbidden"}, HTTPStatus.FORBIDDEN)
+                if not target or target.get("blocked") or target.get("id") == sender.get("id"):
+                    return self.send_json({"ok": False, "emailSent": False})
+                subject = "Nova mensagem no Freela'B Hub"
+                text = f"Olá, {target.get('name', '')}.\n\n{sender.get('name', 'Um usuário')} enviou uma mensagem pelo Freela'B Hub.\nAcesse: {APP_BASE_URL}\n\nMensagem: {body.get('preview', '')[:300]}"
+                sent = send_notification_email(data, target, subject, text, "message_notification_email")
+                data.setdefault("notifications", []).append({"id": secrets.token_urlsafe(10), "at": now(), "fromId": sender.get("id"), "toId": target.get("id"), "type": body.get("type", "message"), "emailSent": sent})
+                data["notifications"] = data["notifications"][-300:]
+                save_state(data)
+                return self.send_json({"ok": True, "emailSent": sent, "emailConfigured": email_ready()})
             if parsed.path == "/api/checkout":
                 current = self.current_session()
                 if not current:
@@ -781,7 +991,7 @@ class Handler(SimpleHTTPRequestHandler):
                 data = state()
                 audit(data, "admin_login", email=ADMIN_EMAIL)
                 save_state(data)
-                cookie = f"freelab_admin={token}; Path=/; HttpOnly; SameSite=Lax; Max-Age={SESSION_TTL}"
+                cookie = session_cookie("freelab_admin", token)
                 return self.send_json({"ok": True}, cookie=cookie)
             if parsed.path == "/api/admin/user":
                 if not self.current_admin():
@@ -838,6 +1048,11 @@ class Handler(SimpleHTTPRequestHandler):
                     for request_item in data.get("deletionRequests", []):
                         if request_item.get("id") == item_id:
                             request_item["status"] = body.get("status", request_item.get("status", "pending"))
+                elif kind == "report":
+                    for report in data.get("reports", []):
+                        if report.get("id") == item_id:
+                            report["status"] = body.get("status", report.get("status", "open"))
+                            report["note"] = body.get("note", report.get("note", ""))
                 else:
                     return self.send_json({"error": "invalid_kind"}, HTTPStatus.BAD_REQUEST)
                 audit(data, "admin_content_update", kind=kind, id=item_id)

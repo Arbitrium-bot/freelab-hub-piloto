@@ -1012,6 +1012,23 @@
       transform: translateY(0);
     }
 
+    .status-panel {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #f8fcfc;
+      padding: 12px;
+      margin-bottom: 12px;
+    }
+
+    .status-panel strong { color: var(--deep); }
+
+    .filter-row {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
     @media (max-width: 1080px) {
       .auth, .app, .form-panel, .messages {
         grid-template-columns: minmax(0, 1fr);
@@ -1120,7 +1137,7 @@
       }
 
       main { padding: 18px 12px 32px; }
-      .form-grid, .toolbar, .metrics, .grid, .chat-form, .public-strip, .testimonial-grid, .map-layout, .listing-meta { grid-template-columns: 1fr; }
+      .form-grid, .toolbar, .metrics, .grid, .chat-form, .public-strip, .testimonial-grid, .map-layout, .listing-meta, .filter-row { grid-template-columns: 1fr; }
       .phone-row { grid-template-columns: 1fr; }
       .album, .preview { grid-template-columns: repeat(2, 1fr); }
       .bubble { max-width: 100%; }
@@ -1386,6 +1403,8 @@
           </div>
         </div>
 
+        <div class="status-panel" id="profileStatusPanel"></div>
+
         <div class="metrics">
           <div class="metric"><strong id="mOpen">0</strong><span id="mOpenLabel">vagas abertas</span></div>
           <div class="metric"><strong id="mPros">0</strong><span>freelancers ativos</span></div>
@@ -1415,8 +1434,10 @@
           <button class="btn primary" data-jump="profile">Nova publicação</button>
         </div>
         <div class="toolbar">
-          <input id="searchInput" placeholder="Buscar por nome, cidade, especialidade ou serviço">
+          <input id="searchInput" placeholder="Buscar por nome, cidade, país, especialidade ou serviço">
           <select id="specialtyFilter"></select>
+          <input id="cityFilter" placeholder="Cidade ou região">
+          <select id="countryFilter"></select>
           <select id="typeFilter">
             <option value="todos">Todos</option>
             <option value="job">Vagas</option>
@@ -1487,6 +1508,27 @@
             <button class="btn primary" type="submit">Publicar vaga/contrato</button>
           </form>
           <div>
+            <div class="box" style="margin-bottom:12px;">
+              <h2>Filtrar vagas</h2>
+              <div class="filter-row">
+                <input id="employmentSearchFilter" placeholder="Cargo, cidade ou empresa">
+                <select id="employmentTypeFilter">
+                  <option value="todos">Todos os tipos</option>
+                  <option>CLT</option>
+                  <option>PJ</option>
+                  <option>Contrato por prazo</option>
+                  <option>Temporário</option>
+                  <option>Estágio / auxiliar</option>
+                </select>
+                <select id="employmentModeFilter">
+                  <option value="todos">Todos os modelos</option>
+                  <option>Presencial</option>
+                  <option>Híbrido</option>
+                  <option>Remoto</option>
+                  <option>Freela recorrente</option>
+                </select>
+              </div>
+            </div>
             <div id="employmentList"></div>
           </div>
         </div>
@@ -1698,6 +1740,27 @@
             <button class="btn primary" type="submit">Publicar</button>
           </form>
           <div>
+            <div class="box" style="margin-bottom:12px;">
+              <h2>Filtrar equipamentos</h2>
+              <div class="filter-row">
+                <input id="classSearchFilter" placeholder="Equipamento, marca ou cidade">
+                <select id="classCategoryFilter">
+                  <option value="todos">Todas as categorias</option>
+                  <option>Equipamento</option>
+                  <option>Material</option>
+                  <option>Scanner</option>
+                  <option>Impressora 3D</option>
+                  <option>Ferramenta</option>
+                </select>
+                <select id="classConditionFilter">
+                  <option value="todos">Todos os estados</option>
+                  <option>Novo</option>
+                  <option>Seminovo</option>
+                  <option>Usado em bom estado</option>
+                  <option>Precisa revisão</option>
+                </select>
+              </div>
+            </div>
             <div id="classifiedList"></div>
           </div>
         </div>
@@ -1868,7 +1931,9 @@
       classifieds: [],
       employmentPosts: [],
       threads: [],
-      externalConnections: []
+      externalConnections: [],
+      blockedUsers: [],
+      notifications: []
     };
 
     let state = load();
@@ -1938,6 +2003,8 @@
       state = { ...structuredClone(defaults), ...nextState };
       state.employmentPosts = state.employmentPosts || [];
       state.classifieds = state.classifieds || [];
+      state.blockedUsers = state.blockedUsers || [];
+      state.notifications = state.notifications || [];
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     }
 
@@ -2040,6 +2107,46 @@
       setTimeout(() => el.classList.remove("show"), 2800);
     }
 
+    function escapeHtml(value) {
+      return String(value ?? "").replace(/[&<>"]/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;" }[char] || char));
+    }
+
+    function profileCompleteness(user) {
+      const fields = [user.name, user.document, user.email, user.phone, user.country, user.city, user.region, user.address, user.bio, user.adTitle];
+      const done = fields.filter(value => String(value || "").trim()).length;
+      return Math.round((done / fields.length) * 100);
+    }
+
+    function visibleUsers() {
+      const blocked = new Set(state.blockedUsers || []);
+      return state.users.filter(user => !user.blocked && !blocked.has(user.id));
+    }
+
+    function canPublish() {
+      const user = currentUser();
+      if (!user?.verified) {
+        toast("Confirme seu e-mail antes de publicar ou enviar mensagens.");
+        return false;
+      }
+      return true;
+    }
+
+    function notifyUser(targetId, type, preview) {
+      if (!backendOnline || !targetId) return;
+      api("/api/notify", { method: "POST", body: JSON.stringify({ targetId, type, preview }) }).catch(() => {});
+    }
+
+    async function reportContent(targetId, targetKind = "user") {
+      const reason = prompt("Descreva rapidamente o motivo da denúncia para a moderação:");
+      if (!reason) return;
+      try {
+        await api("/api/report", { method: "POST", body: JSON.stringify({ targetId, targetKind, reason }) });
+        toast("Denúncia enviada para análise da moderação.");
+      } catch {
+        toast("Não foi possível registrar a denúncia agora.");
+      }
+    }
+
     function showAuthTab(tab) {
       $all("[data-auth-tab]").forEach(button => button.classList.toggle("active", button.dataset.authTab === tab));
       $all(".auth-panel").forEach(panel => panel.classList.add("hidden"));
@@ -2102,6 +2209,7 @@
       const specialtyOptions = specialties.map(item => `<option>${item}</option>`).join("");
       $("#adSpecialty").innerHTML = specialtyOptions;
       $("#specialtyFilter").innerHTML = `<option value="todas">Todas as especialidades</option>${specialtyOptions}`;
+      $("#countryFilter").innerHTML = `<option value="todos">Todos os países</option>${countries.map(country => `<option>${country.name}</option>`).join("")}`;
       $("#specialtyButtons").innerHTML = specialties.map(item => `<button class="chip" type="button" data-specialty="${item}">${item}</button>`).join("");
       fillCountrySelects();
       $("#registerCountry").value = "Brasil";
@@ -2115,6 +2223,8 @@
       $("#miniName").textContent = user.name;
       $("#miniCity").textContent = user.city;
       $("#miniAvatar").innerHTML = avatar(user);
+      const completeness = profileCompleteness(user);
+      $("#profileStatusPanel").innerHTML = `<strong>Perfil ${completeness}% completo</strong><br>${user.verified ? "E-mail confirmado" : "E-mail pendente"}. Complete documento, telefone, endereço, especialidades e publicação para aumentar confiança.`;
       $("#dashboardEyebrow").textContent = isLab ? "Procure freelancers" : "Receba oportunidades";
       $("#dashboardTitle").textContent = isLab ? "Contrate protéticos por especialidade." : "Mostre seu trabalho para clínicas e laboratórios.";
       $("#dashboardCopy").textContent = isLab ? "Sua área prioriza profissionais disponíveis, portfólio e mensagens internas." : "Sua área prioriza publicações abertas, pedidos de contato e seu álbum profissional.";
@@ -2127,8 +2237,12 @@
       $("#specialtyLabel").classList.toggle("hidden", isLab);
 
       $("#profileName").value = user.name;
+      $("#profileDocument").value = user.document || "";
+      $("#profilePostalCode").value = user.postalCode || "";
       $("#profileCity").value = user.city;
       $("#profileCountry").value = user.country || "Brasil";
+      $("#profileRegion").value = user.region || "";
+      $("#profileDistrict").value = user.district || "";
       $("#profileAddress").value = user.address || user.city || "";
       $("#profileEmail").value = user.email;
       $("#profileDialCode").value = user.countryCode || countryFor(user.country).dial;
@@ -2185,8 +2299,8 @@
 
     function renderMetrics() {
       const user = currentUser();
-      const jobs = state.users.filter(item => item.role === "lab" && item.adTitle);
-      const freelancers = state.users.filter(item => item.role === "freelancer" && item.adTitle);
+      const jobs = visibleUsers().filter(item => item.role === "lab" && item.adTitle);
+      const freelancers = visibleUsers().filter(item => item.role === "freelancer" && item.adTitle);
       $("#mOpen").textContent = jobs.length;
       $("#mPros").textContent = freelancers.length;
       $("#mMessages").textContent = (state.threads || []).filter(thread => thread.participants.includes(user.id)).length;
@@ -2228,12 +2342,16 @@
     function filteredUsers(role) {
       const q = $("#searchInput").value.trim().toLowerCase();
       const specialty = $("#specialtyFilter").value;
-      return state.users.filter(user => {
+      const city = $("#cityFilter").value.trim().toLowerCase();
+      const country = $("#countryFilter").value;
+      return visibleUsers().filter(user => {
         if (user.role !== role || !user.adTitle) return false;
-        const text = [user.name, user.city, user.country, user.address, user.adTitle, user.adDescription, user.bio, ...(user.specialties || [])].join(" ").toLowerCase();
+        const text = [user.name, user.city, user.country, user.region, user.address, user.adTitle, user.adDescription, user.bio, ...(user.specialties || [])].join(" ").toLowerCase();
         const matchesText = !q || text.includes(q);
+        const matchesCity = !city || [user.city, user.region, user.address].join(" ").toLowerCase().includes(city);
+        const matchesCountry = country === "todos" || (user.country || "Brasil") === country;
         const matchesSpec = specialty === "todas" || user.adSpecialty === specialty || (user.specialties || []).includes(specialty);
-        return matchesText && matchesSpec;
+        return matchesText && matchesCity && matchesCountry && matchesSpec;
       });
     }
 
@@ -2247,7 +2365,7 @@
     }
 
     function renderMap() {
-      const listed = state.users.filter(user => user.adTitle || user.verified);
+      const listed = visibleUsers().filter(user => user.adTitle || user.verified);
       const countries = new Set(listed.map(user => user.country || "Brasil"));
       const labs = listed.filter(user => user.role === "lab").length;
       const freelancers = listed.filter(user => user.role === "freelancer").length;
@@ -2442,6 +2560,7 @@
           messages: [{ from: me.id, text: `Olá, vi o classificado "${item.title}" e gostaria de conversar.`, time: "Agora" }]
         };
         state.threads.unshift(thread);
+        notifyUser(item.ownerId || "lab-demo", "classified", `Interesse no classificado ${item.title}`);
       }
       state.activeThread = thread.id;
       save();
@@ -2452,7 +2571,14 @@
 
     function renderEmployment() {
       state.employmentPosts = state.employmentPosts || [];
-      $("#employmentList").innerHTML = state.employmentPosts.map(item => `
+      const q = ($("#employmentSearchFilter")?.value || "").trim().toLowerCase();
+      const type = $("#employmentTypeFilter")?.value || "todos";
+      const mode = $("#employmentModeFilter")?.value || "todos";
+      const posts = state.employmentPosts.filter(item => {
+        const text = [item.title, item.company, item.city, item.description, item.benefits].join(" ").toLowerCase();
+        return (!q || text.includes(q)) && (type === "todos" || item.type === type) && (mode === "todos" || item.mode === mode);
+      });
+      $("#employmentList").innerHTML = posts.map(item => `
         <article class="card">
           <div class="card-head">
             <div>
@@ -2469,6 +2595,7 @@
           <p class="text"><strong>Benefícios:</strong> ${item.benefits || "A combinar"}<br>${item.description || ""}</p>
           <div class="actions">
             <button class="btn primary" data-employment-message="${item.id}">Mensagem interna</button>
+            <button class="btn" data-trust-report="${item.id}" data-report-kind="employment">Denunciar</button>
           </div>
         </article>`).join("") || `<div class="empty">Nenhuma vaga ou contrato publicado ainda.</div>`;
     }
@@ -2491,6 +2618,7 @@
           messages: [{ from: me.id, text: `Olá, vi a vaga/contrato "${item.title}" e gostaria de conversar.`, time: "Agora" }]
         };
         state.threads.unshift(thread);
+        notifyUser(item.ownerId || "lab-demo", "employment", `Interesse na vaga/contrato ${item.title}`);
       }
       state.activeThread = thread.id;
       save();
@@ -2499,7 +2627,14 @@
     }
 
     function renderClassifieds() {
-      $("#classifiedList").innerHTML = state.classifieds.map(item => `
+      const q = ($("#classSearchFilter")?.value || "").trim().toLowerCase();
+      const category = $("#classCategoryFilter")?.value || "todos";
+      const condition = $("#classConditionFilter")?.value || "todos";
+      const items = (state.classifieds || []).filter(item => {
+        const text = [item.title, item.brand, item.city, item.category, item.condition, item.description].join(" ").toLowerCase();
+        return (!q || text.includes(q)) && (category === "todos" || item.category === category) && (condition === "todos" || item.condition === condition);
+      });
+      $("#classifiedList").innerHTML = items.map(item => `
         <article class="card">
           <div class="card-head">
             <div>
@@ -2517,6 +2652,7 @@
           <div class="actions">
             <button class="btn primary" data-class-message="${item.id}">Mensagem interna</button>
             <button class="btn teal" data-class-whatsapp="${item.id}">WhatsApp</button>
+            <button class="btn" data-trust-report="${item.id}" data-report-kind="classified">Denunciar</button>
           </div>
           <p class="hint">WhatsApp abre contato direto e consome 1 crédito de contato.</p>
         </article>`).join("");
@@ -2674,9 +2810,13 @@
     $("#registerForm").addEventListener("submit", async event => {
       event.preventDefault();
       if ($("#registerPassword").value !== $("#registerPasswordConfirm").value) return toast("As senhas não conferem.");
-      const email = $("#registerEmail").value.trim();
-      if (state.users.some(user => user.email === email)) return toast("Este e-mail já está cadastrado.");
-      const user = {
+      const email = $("#registerEmail").value.trim().toLowerCase();
+    const documentDigits = $("#registerDocument").value.replace(/\D/g, "");
+    const phoneDigits = $("#registerPhone").value.replace(/\D/g, "");
+    if (state.users.some(user => user.email === email)) return toast("Este e-mail ja esta cadastrado.");
+    if (![11, 14].includes(documentDigits.length)) return toast("Informe CPF ou CNPJ valido no cadastro.");
+    if (phoneDigits.length < 8 || phoneDigits.length > 15) return toast("Informe um telefone valido, nacional ou internacional.");
+    const user = {
         id: crypto.randomUUID(),
         role: $("#registerRole").value,
         name: $("#registerName").value.trim(),
@@ -2788,9 +2928,14 @@
       const classWhatsapp = event.target.closest("[data-class-whatsapp]");
       if (classWhatsapp) openClassifiedWhatsapp(classWhatsapp.dataset.classWhatsapp);
       const trustReport = event.target.closest("[data-trust-report]");
-      if (trustReport) toast("Denúncia registrada para análise da moderação.");
+      if (trustReport) reportContent(trustReport.dataset.trustReport, trustReport.dataset.reportKind || "user");
       const trustBlock = event.target.closest("[data-trust-block]");
-      if (trustBlock) toast("Usuário bloqueado neste piloto.");
+      if (trustBlock) {
+        state.blockedUsers = [...new Set([...(state.blockedUsers || []), trustBlock.dataset.trustBlock])];
+        save();
+        renderAll();
+        toast("Usuário ocultado da sua visualização.");
+      }
       const checkout = event.target.closest("[data-checkout]");
       if (checkout) {
         api("/api/checkout", { method: "POST", body: JSON.stringify({ plan: checkout.dataset.checkout, method: checkout.dataset.method || "mercadopago" }) })
@@ -2822,7 +2967,11 @@
 
     $("#searchInput").addEventListener("input", renderMarket);
     $("#specialtyFilter").addEventListener("change", renderMarket);
+    $("#cityFilter").addEventListener("input", renderMarket);
+    $("#countryFilter").addEventListener("change", renderMarket);
     $("#typeFilter").addEventListener("change", renderMarket);
+    ["#employmentSearchFilter", "#employmentTypeFilter", "#employmentModeFilter"].forEach(sel => $(sel)?.addEventListener(sel.includes("Search") ? "input" : "change", renderEmployment));
+    ["#classSearchFilter", "#classCategoryFilter", "#classConditionFilter"].forEach(sel => $(sel)?.addEventListener(sel.includes("Search") ? "input" : "change", renderClassifieds));
 
     $("#specialtyButtons").addEventListener("click", event => {
       const button = event.target.closest("[data-specialty]");
@@ -2873,6 +3022,7 @@
 
     $("#adForm").addEventListener("submit", event => {
       event.preventDefault();
+      if (!canPublish()) return;
       const user = currentUser();
       user.adTitle = $("#adTitle").value.trim();
       user.adSpecialty = $("#adSpecialty").value;
@@ -2888,6 +3038,7 @@
 
     $("#messageForm").addEventListener("submit", event => {
       event.preventDefault();
+      if (!canPublish()) return;
       const text = $("#messageText").value.trim();
       if (!text) return;
       const me = currentUser();
@@ -2901,6 +3052,8 @@
       });
       $("#messageText").value = "";
       save();
+      const otherId = thread.participants.find(id => id !== me.id);
+      notifyUser(otherId, "message", text);
       renderAll();
       if (!wasConnected && isConnected(thread)) toast("Contato confirmado: os dois lados responderam.");
     });
@@ -2908,6 +3061,7 @@
 
     $("#employmentForm").addEventListener("submit", event => {
       event.preventDefault();
+      if (!canPublish()) return;
       const me = currentUser();
       state.employmentPosts = state.employmentPosts || [];
       state.employmentPosts.unshift({
@@ -2932,6 +3086,7 @@
 
     $("#classifiedForm").addEventListener("submit", event => {
       event.preventDefault();
+      if (!canPublish()) return;
       state.classifieds.unshift({
         id: crypto.randomUUID(),
         ownerId: currentUser().id,

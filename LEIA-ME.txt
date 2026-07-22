@@ -80,3 +80,16 @@ PROXIMAS MELHORIAS RECOMENDADAS
 4. Criar busca avancada por distancia, especialidade, salario e tipo de contrato.
 5. Criar landing page publica especifica para divulgacao.
 6. Revisar termos/privacidade com profissional juridico antes de escala paga.
+
+
+BLOCO IMPLEMENTADO EM 22/07/2026 - SEGURANCA, ADMIN, MODERACAO, FILTROS, USABILIDADE E NOTIFICACOES
+- Estado salvo no backend agora protege dados de outros usuarios: cada conta atualiza apenas seu proprio perfil e seus proprios anuncios/vagas.
+- Cookies de sessao usam flag Secure automaticamente quando APP_BASE_URL esta em HTTPS.
+- Cadastro valida senha, CPF/CNPJ e telefone; login, cadastro, reenvio e recuperacao possuem limites contra abuso.
+- Usuarios sem e-mail confirmado ou bloqueados nao conseguem salvar/publicar pelo backend.
+- Denuncias reais via /api/report aparecem no admin em Moderacao, com status aberto, em analise e concluido.
+- Admin recebeu filtros por perfil/status, metrica de denuncias abertas e controle de moderacao.
+- Marketplace recebeu filtros por cidade/regiao e pais.
+- Vagas & Contratos e Equipamentos receberam filtros especificos.
+- App mostra painel de completude do perfil e bloqueio local de usuario para ocultar perfis indesejados.
+- Notificacoes por e-mail foram preparadas via /api/notify para novas mensagens/interesses quando e-mail real estiver configurado.

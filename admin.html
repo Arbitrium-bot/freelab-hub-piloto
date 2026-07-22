@@ -38,7 +38,7 @@
     .bad { background:#ffe2e2; color:#7c2525; }
     .warn { background:#fff2c9; color:#6f4b00; }
     .toolbar { display:flex; flex-wrap:wrap; gap:10px; justify-content:space-between; align-items:center; margin-bottom:12px; }
-    .toolbar input { width:min(380px,100%); }
+    .toolbar input, .toolbar select { width:min(260px,100%); }
     .event-list { display:grid; gap:8px; }
     .event { display:grid; grid-template-columns:140px 1fr; gap:10px; padding:10px; border:1px solid var(--line); border-radius:var(--radius); background:#fbfdfd; }
     .muted { color:var(--muted); }
@@ -80,6 +80,7 @@
         <button data-panel="threads">Mensagens</button>
         <button data-panel="payments">Pagamentos</button>
         <button data-panel="deletions">Exclusões</button>
+        <button data-panel="reports">Moderação</button>
         <button data-panel="audit">Auditoria</button>
       </nav>
 
@@ -94,7 +95,19 @@
         <div class="box">
           <div class="toolbar">
             <h2>Usuarios cadastrados</h2>
-            <input id="userSearch" placeholder="Buscar por nome, e-mail, cidade ou pais">
+            <input id="userSearch" placeholder="Buscar por nome, e-mail, CPF/CNPJ, cidade ou pais">
+            <select id="userRoleFilter">
+              <option value="todos">Todos os perfis</option>
+              <option value="lab">Clínicas/labs</option>
+              <option value="freelancer">Freelancers</option>
+              <option value="supplier">Fornecedores</option>
+            </select>
+            <select id="userStatusFilter">
+              <option value="todos">Todos os status</option>
+              <option value="verified">Verificados</option>
+              <option value="pending">Pendentes</option>
+              <option value="blocked">Bloqueados</option>
+            </select>
           </div>
           <div id="usersTable"></div>
         </div>
@@ -135,6 +148,21 @@
         </div>
       </section>
 
+      <section class="panel" id="reports">
+        <div class="box">
+          <div class="toolbar">
+            <h2>Moderação e denúncias</h2>
+            <select id="reportStatusFilter">
+              <option value="todos">Todas</option>
+              <option value="open">Abertas</option>
+              <option value="reviewing">Em análise</option>
+              <option value="done">Concluídas</option>
+            </select>
+          </div>
+          <div id="reportsTable"></div>
+        </div>
+      </section>
+
       <section class="panel" id="audit">
         <div class="box">
           <h2>Eventos das paginas</h2>
@@ -145,7 +173,7 @@
   </main>
 
   <script>
-    let snapshot = { users: [], classifieds: [], employmentPosts: [], threads: [], payments: [], deletionRequests: [], auditLog: [], metrics: {} };
+    let snapshot = { users: [], classifieds: [], employmentPosts: [], threads: [], payments: [], deletionRequests: [], reports: [], notifications: [], auditLog: [], metrics: {} };
 
     async function api(path, options = {}) {
       const response = await fetch(path, {
@@ -174,7 +202,14 @@
 
     function currentUsers() {
       const q = (document.querySelector("#userSearch")?.value || "").toLowerCase();
-      return snapshot.users.filter(user => !q || [user.id, user.name, user.email, user.city, user.country, user.role].join(" ").toLowerCase().includes(q));
+      const role = document.querySelector("#userRoleFilter")?.value || "todos";
+      const status = document.querySelector("#userStatusFilter")?.value || "todos";
+      return snapshot.users.filter(user => {
+        const matchesText = !q || [user.id, user.name, user.email, user.city, user.country, user.role, user.document].join(" ").toLowerCase().includes(q);
+        const matchesRole = role === "todos" || user.role === role;
+        const matchesStatus = status === "todos" || (status === "verified" && user.verified) || (status === "pending" && !user.verified) || (status === "blocked" && user.blocked);
+        return matchesText && matchesRole && matchesStatus;
+      });
     }
 
     async function loadAdmin() {
@@ -193,6 +228,7 @@
       renderThreads();
       renderPayments();
       renderDeletions();
+      renderReports();
       renderAudit();
     }
 
@@ -202,7 +238,8 @@
         <div class="card metric"><strong>${m.users || 0}</strong><span>usuarios</span></div>
         <div class="card metric"><strong>${m.labs || 0}</strong><span>clinicas/labs</span></div>
         <div class="card metric"><strong>${m.freelancers || 0}</strong><span>freelancers</span></div>
-        <div class="card metric"><strong>${m.threads || 0}</strong><span>conversas</span></div>`;
+        <div class="card metric"><strong>${m.threads || 0}</strong><span>conversas</span></div>
+        <div class="card metric"><strong>${m.openReports || 0}</strong><span>denúncias abertas</span></div>`;
     }
 
     function renderOverview() {
@@ -210,8 +247,9 @@
       const pending = snapshot.users.filter(user => !user.verified).length;
       const blocked = snapshot.users.filter(user => user.blocked).length;
       const deletionPending = (snapshot.deletionRequests || []).filter(item => item.status !== "done").length;
+      const openReports = (snapshot.reports || []).filter(item => item.status !== "done").length;
       document.querySelector("#overviewContent").innerHTML = `
-        <p>${tag(`${pending} pendente(s)`, pending ? "warn" : "ok")} ${tag(`${blocked} bloqueado(s)`, blocked ? "bad" : "ok")} ${tag(`${m.payments || 0} pagamento(s)`)} ${tag(`${deletionPending} exclusão(ões)`, deletionPending ? "warn" : "ok")} ${tag(snapshot.emailConfigured ? "SMTP ativo" : "SMTP pendente", snapshot.emailConfigured ? "ok" : "warn")}</p>
+        <p>${tag(`${pending} pendente(s)`, pending ? "warn" : "ok")} ${tag(`${blocked} bloqueado(s)`, blocked ? "bad" : "ok")} ${tag(`${m.payments || 0} pagamento(s)`)} ${tag(`${deletionPending} exclusão(ões)`, deletionPending ? "warn" : "ok")} ${tag(`${openReports} denúncia(s)`, openReports ? "bad" : "ok")} ${tag(snapshot.emailConfigured ? "SMTP ativo" : "SMTP pendente", snapshot.emailConfigured ? "ok" : "warn")}</p>
         <p>O painel administrativo tem controle separado do login comum. Usuarios bloqueados deixam de entrar no app e somem do marketplace publico.</p>
         <div class="actions">
           <button class="ghost" type="button" data-refresh>Atualizar dados</button>
@@ -325,6 +363,29 @@
         </table>`;
     }
 
+    function renderReports() {
+      const status = document.querySelector("#reportStatusFilter")?.value || "todos";
+      const reports = (snapshot.reports || []).filter(item => status === "todos" || (item.status || "open") === status).slice().reverse();
+      document.querySelector("#reportsTable").innerHTML = `
+        <table>
+          <thead><tr><th>Data</th><th>Denúncia</th><th>Alvo</th><th>Status</th><th>Controle</th></tr></thead>
+          <tbody>${reports.map(item => `
+            <tr>
+              <td>${fmtTime(item.at)}</td>
+              <td><strong>${item.reporterEmail || "-"}</strong><br>${item.reason || "Sem motivo descrito"}</td>
+              <td>${tag(item.targetKind || "user", "warn")}<br>${item.targetId || "-"}<br>${userName(item.targetId || "")}</td>
+              <td>${tag(item.status || "open", item.status === "done" ? "ok" : item.status === "reviewing" ? "warn" : "bad")}</td>
+              <td>
+                <div class="actions">
+                  <button class="ghost" data-report-status="reviewing" data-id="${item.id}">Em análise</button>
+                  <button class="teal" data-report-status="done" data-id="${item.id}">Concluir</button>
+                  <button class="danger" data-open-user="${item.targetId || ""}">Ver usuário</button>
+                </div>
+              </td>
+            </tr>`).join("") || `<tr><td colspan="5">Nenhuma denúncia registrada.</td></tr>`}</tbody>
+        </table>`;
+    }
+
     function renderAudit() {
       document.querySelector("#auditList").innerHTML = (snapshot.auditLog || []).slice().reverse().map(item => `
         <div class="event">
@@ -354,7 +415,12 @@
     });
 
     document.addEventListener("input", event => {
-      if (event.target.id === "userSearch") renderUsers();
+      if (["userSearch", "userRoleFilter", "userStatusFilter"].includes(event.target.id)) renderUsers();
+    });
+
+    document.addEventListener("change", event => {
+      if (["userRoleFilter", "userStatusFilter"].includes(event.target.id)) renderUsers();
+      if (event.target.id === "reportStatusFilter") renderReports();
     });
 
     document.addEventListener("click", async event => {
@@ -388,6 +454,11 @@
       const deletionButton = event.target.closest("[data-deletion-status]");
       if (deletionButton) {
         await api("/api/admin/content", { method: "POST", body: JSON.stringify({ kind: "deletionRequest", id: deletionButton.dataset.id, status: deletionButton.dataset.deletionStatus }) });
+        await loadAdmin();
+      }
+      const reportButton = event.target.closest("[data-report-status]");
+      if (reportButton) {
+        await api("/api/admin/content", { method: "POST", body: JSON.stringify({ kind: "report", id: reportButton.dataset.id, status: reportButton.dataset.reportStatus }) });
         await loadAdmin();
       }
       const openUser = event.target.closest("[data-open-user]");
